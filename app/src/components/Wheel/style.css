@@ -1,0 +1,47 @@
+.wheel-viewport {
+  height: 50px;
+  border: solid thin white;
+  overflow: hidden;
+  width: 200px;
+  cursor: pointer;
+}
+
+.wheel-container {
+  font-size: 1.5em;
+  line-height: 50px;
+}
+
+@keyframes motion-blur {
+  0% {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+    box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.wheel-container .wheel-face {
+  height: 50px;
+  text-align: center;
+}
+
+@keyframes motionblur {
+  0%
+  {
+    text-shadow: 0 0 0 rgba(255,255,255,0);
+    filter: blur(0);
+  }
+  33%
+  {
+    text-shadow: 0 -12px 10px rgba(255,255,255,1);
+    filter: blur(2px);
+  }
+  33%
+  {
+    text-shadow: 0 -12px 10px rgba(255,255,255,1);
+    filter: blur(2px);
+  }
+  100%
+  {
+    text-shadow: 0 0 0 rgba(255,255,255,0);
+    filter: blur(0);
+  }
+}

@@ -1,0 +1,59 @@
+.player {
+}
+
+.player .title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.4em;
+  border-bottom: solid thin white;
+}
+
+.player .name {
+  text-transform: uppercase;
+  font-size: 2em;
+}
+
+.player .worth {
+  font-weight: bold;
+  font-size: 1.3em;
+}
+
+.player .holdings {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  align-items: first baseline;
+}
+
+.player .holdings .header {
+  font-weight: bold;
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.player .holdings .ticker {
+  text-transform: uppercase;
+}
+
+.player .holdings .quantity {
+  text-align: right;
+  font-size: 0.8em;
+}
+
+.player .holdings .avg-price {
+  text-align: right;
+  font-size: 0.8em;
+}
+
+.player .holdings .mkt-value {
+  text-align: right;
+}
+
+.player .holdings .cash {
+  text-transform: uppercase;
+}
+
+.player .holdings .cash-count {
+  text-align: right;
+  grid-column: 4/5;
+}

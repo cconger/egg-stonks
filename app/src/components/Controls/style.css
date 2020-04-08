@@ -1,0 +1,17 @@
+.wheels {
+  display: flex;
+}
+
+.button {
+  height: 50px;
+  border: solid thin white;
+  width: 130px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 50px;
+  font-size: 1.5em;
+}
+
+.button:hover {
+  background: #222;
+}
