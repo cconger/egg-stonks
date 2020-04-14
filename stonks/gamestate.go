@@ -12,6 +12,9 @@ import (
 /*
 NOTES:
 All values are integers in number of cents.
+
+Player Status 0 means ok
+Player Status 1 means disconnected
 */
 
 // GameState is the top level node in the tree dsecribing game state
@@ -175,6 +178,7 @@ type Player struct {
 	Portfolio []*Holding `json:"portfolio"`
 	Cash      int        `json:"cash"`
 	Value     []int      `json:"value"`
+	Status    int        `json:"status"`
 }
 
 func (p *Player) totalHolding(stonk xid.ID) int {

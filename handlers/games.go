@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"fmt"
-
 	"net/http"
+
+	"github.com/cconger/egg-stonks/stonks"
+	"github.com/gorilla/mux"
+	"github.com/rs/xid"
 )
 
 type gameConfig struct {
@@ -18,12 +21,60 @@ type createGamePayload struct {
 	OwnerName string
 }
 
+// GameRegistry is just a map of game servers and handles routing to them from central web handlers
+type GameRegistry struct {
+	Games map[string]*GameServer
+}
+
+// NewGameRegistry returns a registry of all games.  It allows routing to the sub gameservers
+func NewGameRegistry() *GameRegistry {
+	return &GameRegistry{
+		Games: make(map[string]*GameServer),
+	}
+}
+
 type createGameResponse struct {
 	GameID string
 }
 
-// CreateGame is a post to generate a new game for people to join
-func CreateGame(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-	fmt.Fprintf(w, "create game not implemented")
+// CreateGame is the http handler for users to create a new game in the registry
+func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
+	gr.Games["101"] = &GameServer{
+		GameState: stonks.NewGame(10, 4, []string{
+			"Eggs",
+			"Resin",
+			"Chat",
+			"Canola",
+			"RURURU",
+			"Gold Chains",
+		}),
+		Rolls:         make(map[xid.ID]PendingRoll),
+		Players:       make(map[string]string),
+		PlayerStreams: make(map[string]chan interface{}),
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "New Game Created: 101")
+}
+
+// JoinGame is the central entrypoint.  A gameid is specified in the path and we route the request to the sub
+// game server to handle.
+func (gr *GameRegistry) JoinGame(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Access-Control-Allow-Origin", "http://localhost:9000")
+	vars := mux.Vars(r)
+
+	gameID, ok := vars["gameID"]
+	if !ok || gameID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Invalid game specified")
+		return
+	}
+
+	server, ok := gr.Games[gameID]
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "Unknown game ID: %s", gameID)
+		return
+	}
+
+	server.JoinGame(w, r)
 }

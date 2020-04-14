@@ -1,13 +1,15 @@
 import * as React from 'react';
 
+import { Stonk } from 'stonks/game/state';
+
 export interface PurchasesProps {
-  stonks: string[];
+  stonks: Stonk[];
 }
 
 export const Purchases = (props: PurchasesProps) => {
   return (
     <div>
-      Buy some shit
+      Hello world
     </div>
   );
 }

@@ -25,15 +25,22 @@ func main() {
 		Handler:      r,
 	}
 
+	registry := handlers.NewGameRegistry()
+
 	r.HandleFunc("/", handle)
 	r.HandleFunc("/_ah/health", healthCheckHandler)
-	r.HandleFunc("/game/create", handlers.CreateGame)
-	r.HandleFunc("/game/{gameID}/join", handlers.JoinGame).Methods("POST")
-	r.HandleFunc("/game/{gameID}/state", handlers.State).Methods("GET")
-	r.HandleFunc("/game/{gameID}/roll", handlers.AcquireRoll).Methods("POST")
-	r.HandleFunc("/game/{gameID/applyroll", handlers.ApplyRoll).Methods("POST")
+	r.HandleFunc("/game/create", registry.CreateGame)
 
-	r.HandleFunc("/game/simulate", handlers.SimulateGame)
+	r.HandleFunc("/games/create", registry.CreateGame).Methods("POST")
+	r.HandleFunc("/game/{gameID}/join", registry.JoinGame)
+
+	/*
+		r.HandleFunc("/game/{gameID}/state", handlers.State).Methods("GET")
+		r.HandleFunc("/game/{gameID}/roll", handlers.AcquireRoll).Methods("POST")
+		r.HandleFunc("/game/{gameID/applyroll", handlers.ApplyRoll).Methods("POST")
+
+		r.HandleFunc("/game/simulate", handlers.SimulateGame)
+	*/
 	port := os.Getenv("PORT")
 
 	if port == "" {
