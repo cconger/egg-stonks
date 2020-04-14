@@ -22,6 +22,9 @@ export const Application = () => {
     }
 
     let playerName = sessionStorage.getItem('player_name')
+    if (playerName === null) {
+      playerName = undefined;
+    }
 
     return {
       gameID: "101",
@@ -48,5 +51,5 @@ export const Application = () => {
     return <NamePicker prefill={prefill} onSubmit={namePicked} />
   }
 
-  return <GameClient clientID={clientID} gameID={"101"} name={"ChandyMan"} />
+  return <GameClient clientID={clientID} gameID={gameID} name={playerName} />
 }
