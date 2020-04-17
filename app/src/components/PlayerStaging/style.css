@@ -1,0 +1,21 @@
+
+.player-title {
+  display: inline-block;
+  font-size: 2em;
+  font-weight: bold;
+  border-bottom: solid thin white;
+  margin-bottom: 0.5em;
+}
+
+.player-list {
+  text-transform: uppercase;
+  font-size: 1.5em;
+}
+
+.player-list.me {
+  color: rgba(0,255,0,1);
+}
+
+.start {
+  margin-top: 1em;
+}

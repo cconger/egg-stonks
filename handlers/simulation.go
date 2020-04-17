@@ -32,16 +32,6 @@ func SimulateGame(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for i := 0; i < 100; i++ {
-		r, _ := gs.Roll(gs.Players[i%4].ID)
-		err := gs.ApplyRoll(r)
-		if err != nil {
-			log.Error().Err(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
-
 	w.Header().Add("Access-Control-Allow-Origin", "http://localhost:9000")
 
 	err := json.NewEncoder(w).Encode(gs)

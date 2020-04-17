@@ -20,11 +20,11 @@ export const PlayerBoard = (props: PlayerBoardProps) => {
     let totalCost = 0;
     for (const lot of holding.lots) {
       quantity += lot[0];
-      let cost = quantity * (lot[1] / 100);
+      let cost = lot[0] * (lot[1] / 100);
       totalCost += cost;
     }
 
-    let avgCost = (totalCost / quantity).toFixed(2);
+    let avgCost = (totalCost / quantity);
     let prices = stonk.history[stonk.history.length - 1]
     let lastPrice = prices[prices.length - 1] / 100;
     let mktValue = quantity * lastPrice;
@@ -34,9 +34,9 @@ export const PlayerBoard = (props: PlayerBoardProps) => {
     return (
       <React.Fragment key={stonk.id}>
         <div className="ticker">{stonk.name}</div>
-        <div className="quantity">{quantity}</div>
-        <div className="avg-price">${avgCost}</div>
-        <div className="mkt-value">${mktValue}</div>
+        <div className="quantity">{quantity.toFixed(0)}</div>
+        <div className="avg-price">${avgCost.toFixed(2)}</div>
+        <div className="mkt-value">${mktValue.toFixed(0)}</div>
       </React.Fragment>
     )
   });
@@ -59,7 +59,7 @@ export const PlayerBoard = (props: PlayerBoardProps) => {
     table = (
       <div className="holdings">
         <div className="cash">Cash</div>
-        <div className="cash-count">${cashDollars}</div>
+        <div className="cash-count">${cashDollars.toFixed(0)}</div>
       </div>
     )
   }

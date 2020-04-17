@@ -141,5 +141,6 @@ export const data: GameState = {
     },
   ],
   log: [
-  ]
+  ],
+  roll: null,
 };

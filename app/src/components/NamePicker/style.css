@@ -1,0 +1,53 @@
+
+.dialog-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: minmax(1em, 10em) 1fr auto;
+  grid-template-areas:
+    ". . ."
+    ". dialog ."
+    ". . .";
+}
+
+.dialog {
+  border: solid thin white;
+  padding: 2em;
+  grid-area: dialog;
+  width: 30em;
+}
+
+.NamePicker {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: bottom;
+}
+
+.NamePicker label {
+  font-size: 2em;
+  flex-grow: 1;
+}
+
+.name-input {
+  height: 1em;
+  font-size: 1em;
+  color: white;
+  border: solid thin white;
+  background: rgba(0,0,0,0);
+  text-transform: uppercase;
+  font-family: "Inconsolata", monospace;
+}
+
+.name-button {
+  cursor: pointer;
+  border: solid thin white;
+  font-size: 1em;
+  height: 2em;
+  line-height: 2em;
+  font-weight: bold;
+  padding: 0 1em;
+}
+
+.name-button:hover{
+  background: rgba(255,255,255,0.5);
+}
+

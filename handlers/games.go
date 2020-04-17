@@ -48,8 +48,7 @@ func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
 			"RURURU",
 			"Gold Chains",
 		}),
-		Rolls:         make(map[xid.ID]PendingRoll),
-		Players:       make(map[string]string),
+		Players:       make(map[string]xid.ID),
 		PlayerStreams: make(map[string]chan interface{}),
 	}
 	w.WriteHeader(http.StatusOK)

@@ -31,6 +31,7 @@ export interface GameState {
   players: Player[];
   stonks: Stonk[];
   log: LogEntry[];
+  roll: Roll | null;
 }
 
 export enum Phase {
@@ -43,4 +44,17 @@ export interface Turn {
   index: number;
   phase: Phase;
   player: string;
+}
+
+export interface Roll {
+  id: string;
+  player: string;
+  stonk: string;
+  action: number;
+  value: number;
+  reveal: boolean[];
+}
+
+export function GetPrice(stonk: Stonk): number {
+  return stonk.history[stonk.history.length - 1][3] / 100;
 }

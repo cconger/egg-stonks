@@ -1,59 +1,84 @@
 import * as React from 'react';
 
 import {Wheel} from 'stonks/components/Wheel';
+import {Stonk, Player, Roll} from 'stonks/game/state';
 
 import './style.css';
 
 export interface ControlProps {
-  stonks: string[];
+  player: Player;
+  myPlayer: Player;
+  stonks: Stonk[];
+  roll: Roll | null;
+  client: Client;
+}
+
+interface Client {
+  RevealRoll: (mask: boolean[]) => void;
+  ApplyRoll: () => void;
 }
 
 export interface ControlState {
   rolls: number[];
-  generations: number[];
 }
 
 export const Controls = (props: ControlProps) => {
-  const [{rolls, generations}, setState] = React.useState({
-    rolls: [0,0,0],
-    generations: [0,0,0],
-  });
-
   let choices = [
-    props.stonks,
+    props.stonks.map((s) => (s.name)),
     ["Up", "Down", "Dividend"],
     ["5", "10", "15", "20"],
   ];
 
+  let stockRoll = props.stonks.findIndex((stonk) => (stonk.id === props.roll.stonk));
+  let actionRoll = props.roll.action;
+  let valueRoll = choices[2].findIndex((choice) => (props.roll.value.toString() == choice));
 
-  let rollAll = () => {
-    setState({
-      rolls: rolls.map((x, i) => (randomInt(0, choices[i].length))),
-      generations: generations.map(x => x +1),
-    });
+  let rolls = [
+    stockRoll,
+    actionRoll,
+    valueRoll,
+  ];
+
+  let myTurn = props.player.id == props.myPlayer.id;
+
+  let allShown = props.roll.reveal.reduce((v, a) => (v && a), true)
+  React.useEffect(() => {
+    if (allShown && myTurn) {
+      setTimeout(() => {
+        props.client.ApplyRoll();
+      }, 5000);
+    }
+  }, [allShown])
+
+
+  let allRollButton
+  if (myTurn) {
+    let rollAll = () => {
+      props.client.RevealRoll([true, true, true]);
+    }
+    allRollButton = <div className="button" onClick={rollAll}>Roll All</div>
   }
 
   let roll = (idx: number) => {
-    const newRolls = rolls.map((x, i) => {
-      if (i == idx) {
-        return randomInt(0, choices[i].length);
-      } else {
-        return x;
-      }
-    });
-    setState({
-      rolls: newRolls,
-      generations: generations.map((x,i) => (i === idx ? x + 1 : x)),
-    });
+    if (!myTurn) { return; }
+
+    let mask = [false, false, false]
+    mask[idx] = true;
+
+    props.client.RevealRoll(mask);
   }
 
+  let id = props.roll && props.roll.id || '-';
 
   return (
-    <div className="wheels">
-      <Wheel choices={choices[0]} roll={rolls[0]} generation={generations[0]} rollHandler={() => roll(0)} />
-      <Wheel choices={choices[1]} roll={rolls[1]} generation={generations[1]} rollHandler={() => roll(1)} />
-      <Wheel choices={choices[2]} roll={rolls[2]} generation={generations[2]} rollHandler={() => roll(2)} />
-      <div className="button" onClick={rollAll}>Roll All</div>
+    <div>
+      <div>{props.player.name} rolling...</div>
+      <div className="wheels">
+        <Wheel enabled={myTurn} reveal={props.roll.reveal[0]} rollID={id} choices={choices[0]} roll={rolls[0]} rollHandler={() => roll(0)} />
+        <Wheel enabled={myTurn} reveal={props.roll.reveal[1]} rollID={id} choices={choices[1]} roll={rolls[1]} rollHandler={() => roll(1)} />
+        <Wheel enabled={myTurn} reveal={props.roll.reveal[2]} rollID={id} choices={choices[2]} roll={rolls[2]} rollHandler={() => roll(2)} />
+        {allRollButton}
+      </div>
     </div>
   )
 }

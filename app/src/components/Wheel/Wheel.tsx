@@ -1,15 +1,16 @@
 import * as React from 'react';
 
 export interface WheelProps {
+  enabled: boolean;
   choices: string[];
+  reveal: boolean;
   roll: number;
-  generation: number;
+  rollID: string;
   rollHandler: () => void;
 };
 
 interface WheelState {
   animating: boolean;
-  generation: number;
   scrolledIndex: number;
 };
 
@@ -22,19 +23,20 @@ export const Wheel = (props: WheelProps) => {
   let totalItems = copies * props.choices.length;
   let endOffset = (copies - 2) * props.choices.length;
 
-  const [{animating, generation, scrolledIndex}, setState] = React.useState({
+  const [{animating, scrolledIndex}, setState] = React.useState({
     animating: false,
-    generation: props.generation,
-    scrolledIndex: props.roll,
+    scrolledIndex: 0,
   });
 
-  if (generation != props.generation) {
-    setState({
-      animating: true,
-      generation: props.generation,
-      scrolledIndex: props.roll + endOffset,
-    });
-  }
+  React.useEffect(() => {
+    if (props.reveal) {
+      setState((state) => ({
+        ...state,
+        animating: true,
+        scrolledIndex: endOffset + props.roll,
+      }));
+    }
+  }, [props.reveal])
 
   let items = [];
   for (let i = 0; i < totalItems; i++) {
@@ -48,8 +50,7 @@ export const Wheel = (props: WheelProps) => {
   let endAnimation = () => {
     setState({
       animating: false,
-      generation: generation,
-      scrolledIndex: props.roll,
+      scrolledIndex: scrolledIndex % props.choices.length,
     });
   }
 
@@ -76,10 +77,17 @@ export const Wheel = (props: WheelProps) => {
     }
   }
 
+  let classList = ["wheel-container"];
+  if (props.reveal) {
+    classList.push("locked")
+  }
+  if (props.enabled && !props.reveal) {
+    classList.push("jiggle");
+  }
 
   return (
     <div className="wheel-viewport" onClick={props.rollHandler}>
-      <div className="wheel-container" style={animationStyle} onAnimationEnd={endAnimation}>
+      <div className={classList.join(" ")} style={animationStyle} onAnimationEnd={endAnimation}>
         {items}
       </div>
     </div>

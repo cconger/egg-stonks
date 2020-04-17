@@ -73,7 +73,7 @@ func (gc *GameCreate) Type() string {
 
 // PlayerJoined is a log entry where a player joins the game
 type PlayerJoined struct {
-	Player xid.ID `json:"type"`
+	Player xid.ID `json:"player"`
 }
 
 // Type implements the Log interface
@@ -88,6 +88,27 @@ type GameStarted struct {
 // Type implements the Log interface
 func (gs *GameStarted) Type() string {
 	return "game-started"
+}
+
+// NextTurn is a log entry when a turn starts
+type NextTurn struct {
+	Turn  int `json:"turn"`
+	Phase int `json:"phase"`
+}
+
+// Type implements the Log interface
+func (nt *NextTurn) Type() string {
+	return "next-turn"
+}
+
+// Ready is a log entry where a player is ready.
+type Ready struct {
+	Player xid.ID `json:"player"`
+}
+
+// Type implements the Log interface
+func (r *Ready) Type() string {
+	return "ready"
 }
 
 // Split is a lot entry where a stock reached its max price and split

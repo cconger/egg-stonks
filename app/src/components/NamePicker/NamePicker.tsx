@@ -18,10 +18,15 @@ export const NamePicker = (props: NamePickerProps) => {
   }
 
   return (
-    <div className="NamePicker">
-      <label>Name</label>
-      <input type="text" minLength={1} maxLength={12} value={name} onChange={updateName} />
-      <div onClick={submit}>Join</div>
+    <div className="dialog-container">
+      <div className="dialog">
+        <div className="NamePicker">
+          <label>Name:
+            <input className="name-input" type="text" minLength={1} maxLength={12} value={name} onChange={updateName} />
+          </label>
+          <div className="name-button" onClick={submit}>JOIN</div>
+        </div>
+      </div>
     </div>
   )
 }

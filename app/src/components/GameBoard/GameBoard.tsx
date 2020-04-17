@@ -4,20 +4,26 @@ import {StonkBoard} from 'stonks/components/StonkBoard';
 import {PlayerBoard} from 'stonks/components/PlayerBoard';
 import {Controls} from 'stonks/components/Controls';
 import {Purchases} from 'stonks/components/Purchases';
+import {ErrorPane} from 'stonks/components/ErrorPane';
 import {Log} from 'stonks/components/Log';
 import {GameState} from 'stonks/game/state';
+import {ErrorMsg} from 'stonks/game/client';
 
 import './style.css';
 
 export interface GameBoardProps {
   state: GameState;
   currentPlayer?: string;
+  error?: ErrorMsg;
+  client?: GameClient;
 }
 
-interface GameBoardState {
-  loaded: boolean;
-  error?: string;
-  state?: GameState;
+interface GameClient {
+  BuyStonk: (stonk: string, quantity: number) => void;
+  SellStonk: (stonk: string, quantity: number) => void;
+  FinishBuy: () => void;
+  RevealRoll: (mask: boolean[]) => void;
+  ApplyRoll: () => void;
 }
 
 export const GameBoard = (props: GameBoardProps) => {
@@ -29,11 +35,23 @@ export const GameBoard = (props: GameBoardProps) => {
     <PlayerBoard key={player.id} player={player} stonks={props.state.stonks} />
   ));
 
+  let [myPlayer] = props.state.players.filter((player) => (player.id == props.currentPlayer));
+
   let playerStyles = {
     gridTemplateColumns: "repeat(" + props.state.players.length + ", 1fr)",
   };
 
-  let stocklist = props.state.stonks.map((stonk) => (stonk.name));
+  let controls
+  if (props.state.turn.phase == 1) {
+    controls = <Purchases player={myPlayer} stonks={props.state.stonks} client={props.client} />
+  }
+  if (props.state.turn.phase == 2) {
+    let [actingPlayer] = props.state.players.filter((player) => (player.id == props.state.turn.player))
+    controls = <Controls player={actingPlayer} myPlayer={myPlayer} stonks={props.state.stonks} roll={props.state.roll} client={props.client} />
+  }
+  if (props.state.turn.number >= props.state.turns) {
+    controls = <div>Game over!</div>
+  }
 
   return (
     <div className="screen">
@@ -46,10 +64,10 @@ export const GameBoard = (props: GameBoardProps) => {
       <div className="input">
         <Log log={props.state.log} players={props.state.players} stonks={props.state.stonks} />
         <div className="controls">
-          <Controls stonks={stocklist} />
-          <Purchases stonks={props.state.stonks} />
+          {controls}
         </div>
       </div>
+      <ErrorPane error={props.error} />
     </div>
   )
 }

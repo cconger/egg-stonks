@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/rs/xid"
+	"github.com/rs/zerolog/log"
 )
 
 /*
 NOTES:
+All modifiers assume that they're being called from a single routine
 All values are integers in number of cents.
 
 Player Status 0 means ok
@@ -19,11 +21,12 @@ Player Status 1 means disconnected
 
 // GameState is the top level node in the tree dsecribing game state
 type GameState struct {
-	Turn    *Turn       `json:"turn"`
-	Turns   int         `json:"turns"`
-	Players []*Player   `json:"players"`
-	Stonks  []*Stonk    `json:"stonks"`
-	Log     []*LogEntry `json:"log"`
+	Turn     *Turn       `json:"turn"`
+	Turns    int         `json:"turns"`
+	Players  []*Player   `json:"players"`
+	Stonks   []*Stonk    `json:"stonks"`
+	Log      []*LogEntry `json:"log"`
+	NextRoll *Roll       `json:"roll"`
 }
 
 func (gs *GameState) stonkByID(id xid.ID) *Stonk {
@@ -61,10 +64,11 @@ func (gs *GameState) payDividend(stonk *Stonk, value int) {
 
 // Turn stores the current state of where we are in the game
 type Turn struct {
-	Number int     `json:"number"`
-	Phase  int     `json:"phase"`
-	Player *xid.ID `json:"player"`
-	Action int     `json:"action"`
+	Number     int      `json:"number"`
+	Phase      int      `json:"phase"`
+	Player     *xid.ID  `json:"player"`
+	Action     int      `json:"action"`
+	WaitingFor []xid.ID `json:"-"`
 }
 
 // Stonk is a description of a stonk thorugh the course of a game
@@ -209,6 +213,7 @@ func (p *Player) buy(stonk *Stonk, quantity int) error {
 
 	var holding *Holding
 	for _, h := range p.Portfolio {
+		log.Info().Str("holding", h.Stonk.String()).Str("search", stonk.ID.String()).Msg("Checking holdings")
 		if h.Stonk == stonk.ID {
 			holding = h
 		}
@@ -220,24 +225,43 @@ func (p *Player) buy(stonk *Stonk, quantity int) error {
 			Stonk: stonk.ID,
 			Lots:  []*Lot{},
 		}
+		p.Portfolio = append(p.Portfolio, holding)
 	}
 	holding.buy(quantity, price)
 
-	p.Portfolio = append(p.Portfolio, holding)
 	return nil
 }
 
 func (p *Player) sell(stonk *Stonk, quantity int) (int, error) {
+	newHoldings := []*Holding{}
+	sold := 0
 	for _, h := range p.Portfolio {
 		if h.Stonk == stonk.ID {
 			q := h.sell(quantity)
+
+			if h.total() > 0 {
+				log.Info().Int("total", h.total()).Msg("Still has holding...")
+				newHoldings = append(newHoldings, h)
+			}
+
 			credit := q * stonk.price()
 			p.Cash += credit
-			return q, nil
+			sold += q
+		} else {
+			newHoldings = append(newHoldings, h)
 		}
 	}
 
-	return 0, fmt.Errorf("no ownership")
+	p.Portfolio = newHoldings
+
+	if sold == 0 {
+		return sold, fmt.Errorf("No ownership")
+	}
+	if sold < quantity {
+		return sold, fmt.Errorf("Only sold %d shares", sold)
+	}
+
+	return sold, nil
 }
 
 // Holding is the description of a players holding history of a specific stonk
@@ -272,10 +296,11 @@ func (h *Holding) buy(quantity int, price int) {
 
 func (h *Holding) sell(quantity int) int {
 	sold := 0
-	newLots := make([]*Lot, 0, len(h.Lots))
+	newLots := make([]*Lot, 0)
 	for _, l := range h.Lots {
 		delta := quantity - sold
-		if l.Quantity < delta {
+
+		if l.Quantity <= delta {
 			sold += l.Quantity
 			// Don't copy to new list
 			continue
@@ -288,6 +313,7 @@ func (h *Holding) sell(quantity int) int {
 
 		newLots = append(newLots, l)
 	}
+	h.Lots = newLots
 
 	return sold
 }
@@ -317,10 +343,12 @@ const (
 
 // Roll describes a roll of the dice
 type Roll struct {
-	Player xid.ID
-	Stonk  xid.ID
-	Action PlayerAction
-	Value  int
+	ID         xid.ID       `json:"id"`
+	Player     xid.ID       `json:"player"`
+	Stonk      xid.ID       `json:"stonk"`
+	Action     PlayerAction `json:"action"`
+	Value      int          `json:"value"`
+	RevealMask [3]bool      `json:"reveal"`
 }
 
 // NewGame returns a new game configured with the appropriate fields
@@ -379,9 +407,19 @@ func (gs *GameState) reconcileValue() {
 	}
 }
 
-// ApplyRoll internally mutates the gamestate to apply the outcome of the roll provided.
+// ApplyRoll internally mutates the gamestate to apply the outcome of the roll staged.
 // These are decoupled to allow for the roll to be returned to the player before
-func (gs *GameState) ApplyRoll(roll *Roll) error {
+func (gs *GameState) ApplyRoll(playerID xid.ID) error {
+	if gs.Turn.Player == nil || *gs.Turn.Player != playerID {
+		return fmt.Errorf("You're not the rolling player")
+	}
+	roll := gs.NextRoll
+	if roll == nil {
+		return fmt.Errorf("No roll ready")
+	}
+
+	defer gs.nextRoller()
+
 	switch roll.Action {
 	case ActionUp, ActionDown:
 		return gs.applyStockMove(roll)
@@ -453,8 +491,43 @@ func (gs *GameState) applyDividend(roll *Roll) error {
 	return nil
 }
 
+func (gs *GameState) hasGameStarted() bool {
+	return gs.Turn.Phase > 0
+}
+
+func (gs *GameState) isTransactPhase() bool {
+	return gs.Turn.Phase == 1
+}
+
+func (gs *GameState) isDone() bool {
+	return gs.Turn.Number >= gs.Turns
+}
+
+func (gs *GameState) startBuying() error {
+	gs.Turn.Phase = 1
+
+	waitingList := make([]xid.ID, len(gs.Players))
+	for i, p := range gs.Players {
+		waitingList[i] = p.ID
+	}
+	gs.Turn.WaitingFor = waitingList
+	return nil
+}
+
+// StartGame attempts to start the game.
+func (gs *GameState) StartGame() error {
+	if gs.hasGameStarted() {
+		return fmt.Errorf("Game already started")
+	}
+
+	return gs.startBuying()
+}
+
 // AddPlayer creates a new player of the given name and returns the ID for that player
-func (gs *GameState) AddPlayer(name string) (string, error) {
+func (gs *GameState) AddPlayer(name string) (xid.ID, error) {
+	if gs.hasGameStarted() {
+		return xid.New(), fmt.Errorf("Unable to join... game has started")
+	}
 	player := &Player{
 		ID:        xid.New(),
 		Name:      name,
@@ -465,7 +538,94 @@ func (gs *GameState) AddPlayer(name string) (string, error) {
 	player.Value[0] = player.Cash
 	gs.Players = append(gs.Players, player)
 
-	return player.ID.String(), nil
+	return player.ID, nil
+}
+
+func (gs *GameState) startRolling() error {
+	waitingList := make([]xid.ID, len(gs.Players))
+	for i, p := range gs.Players {
+		waitingList[i] = p.ID
+	}
+	gs.Turn.Player = nil
+	gs.Turn.WaitingFor = waitingList
+	return gs.nextRoller()
+}
+
+func (gs *GameState) nextRoller() error {
+	if gs.Turn.Player != nil && gs.Turn.Action == 0 {
+		gs.Turn.Action = 1
+		roll, err := gs.Roll(*gs.Turn.Player)
+		if err != nil {
+			return err
+		}
+		gs.NextRoll = roll
+
+		return nil
+	}
+
+	if len(gs.Turn.WaitingFor) == 0 {
+		return gs.advanceTurn()
+	}
+
+	nextPlayer := gs.Turn.WaitingFor[0]
+	gs.Turn.WaitingFor = gs.Turn.WaitingFor[1:]
+
+	gs.Turn.Player = &nextPlayer
+	gs.Turn.Action = 0
+
+	roll, err := gs.Roll(nextPlayer)
+	if err != nil {
+		return err
+	}
+
+	gs.NextRoll = roll
+
+	return nil
+}
+
+func (gs *GameState) advanceTurn() error {
+	if gs.isDone() {
+		return fmt.Errorf("Game ended")
+	}
+
+	if gs.Turn.Phase == 1 {
+		// Buying => Trading
+		gs.Turn.Phase = 2
+		return gs.startRolling()
+	} else if gs.Turn.Phase == 2 {
+		// Trading into Next Buying
+		gs.Turn.Number++
+		if gs.isDone() {
+			return nil
+		}
+		for _, s := range gs.Stonks {
+			_, err := s.getHistory(gs.Turn.Number)
+			if err != nil {
+				log.Error().Err(err).Msg("Unable to hydrate history")
+			}
+		}
+		return gs.startBuying()
+	} else {
+		return fmt.Errorf("Game in unrecoverable state")
+	}
+}
+
+// RemovePlayer attempts to remove a player from the game
+func (gs *GameState) RemovePlayer(playerID xid.ID) error {
+	if gs.hasGameStarted() {
+		return fmt.Errorf("Game started, cannot remove player")
+	}
+
+	players := []*Player{}
+	for _, p := range gs.Players {
+		if p.ID == playerID {
+			continue
+		}
+		players = append(players, p)
+	}
+
+	gs.Players = players
+	return nil
 }
 
 // Roll returns a roll.  It does not modify gamestate since we want to return fast
@@ -475,6 +635,7 @@ func (gs *GameState) Roll(player xid.ID) (*Roll, error) {
 	movement := allowedMovements[rand.Intn(len(allowedMovements))]
 
 	return &Roll{
+		ID:     xid.New(),
 		Player: player,
 		Stonk:  stonk.ID,
 		Action: action,
@@ -484,6 +645,10 @@ func (gs *GameState) Roll(player xid.ID) (*Roll, error) {
 
 // Transact is for a player buying or selling stock
 func (gs *GameState) Transact(playerID xid.ID, stonkID xid.ID, quantity int) error {
+	if !gs.isTransactPhase() {
+		return fmt.Errorf("Its not transaction time")
+	}
+
 	stonk := gs.stonkByID(stonkID)
 	if stonk == nil {
 		return fmt.Errorf("Unknown stonk %v", stonkID)
@@ -503,7 +668,7 @@ func (gs *GameState) Transact(playerID xid.ID, stonkID xid.ID, quantity int) err
 			return fmt.Errorf("Could not buy: %s", err)
 		}
 	} else {
-		q, err := player.sell(stonk, quantity)
+		q, err := player.sell(stonk, -quantity)
 		if err != nil {
 			return fmt.Errorf("Unable to sell: %s", err)
 		}
@@ -518,5 +683,42 @@ func (gs *GameState) Transact(playerID xid.ID, stonkID xid.ID, quantity int) err
 	})
 	gs.reconcileValue()
 
+	return nil
+}
+
+// Reveal reveals the specified fields on the dice.
+func (gs *GameState) Reveal(playerID xid.ID, mask [3]bool) error {
+	if gs.Turn.Phase != 2 || gs.Turn.Player == nil || *gs.Turn.Player != playerID {
+		return fmt.Errorf("Not your turn to roll")
+	}
+
+	for i := range gs.NextRoll.RevealMask {
+		gs.NextRoll.RevealMask[i] = gs.NextRoll.RevealMask[i] || mask[i]
+	}
+
+	return nil
+}
+
+// Ready marks a player as ready to advance out of buying phase
+func (gs *GameState) Ready(playerID xid.ID) error {
+	if gs.Turn.Phase != 1 {
+		return fmt.Errorf("Not in buying phase")
+	}
+
+	waitingFor := []xid.ID{}
+	for _, id := range gs.Turn.WaitingFor {
+		if id != playerID {
+			waitingFor = append(waitingFor, id)
+		}
+	}
+
+	gs.addLog(&Ready{
+		Player: playerID,
+	})
+
+	gs.Turn.WaitingFor = waitingFor
+	if len(gs.Turn.WaitingFor) == 0 {
+		return gs.advanceTurn()
+	}
 	return nil
 }

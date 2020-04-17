@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/cconger/egg-stonks/stonks"
@@ -14,8 +15,7 @@ import (
 
 // PendingRoll is a wrapper around a roll allowing it to be addressed and applied
 type PendingRoll struct {
-	PlayerID xid.ID
-	RollID   xid.ID
+	PlayerID string
 	Roll     *stonks.Roll
 }
 
@@ -30,9 +30,11 @@ var upgrader = websocket.Upgrader{
 // GameServer is a server for a single game instance.  It encapsulates the gamestate and manages the the
 // webscoket connections to the game.
 type GameServer struct {
-	GameState     *stonks.GameState
-	Rolls         map[xid.ID]PendingRoll
-	Players       map[string]string
+	StateMutex  sync.RWMutex
+	GameState   *stonks.GameState
+	PendingRoll *PendingRoll
+	// Map of clientID to playerID
+	Players       map[string]xid.ID
 	PlayerStreams map[string]chan interface{}
 }
 
@@ -41,6 +43,11 @@ type SocketUpdate struct {
 	Time    time.Time   `json:"ts"`
 	Type    string      `json:"type"`
 	Payload interface{} `json:"payload"`
+}
+
+type socketCommand struct {
+	Action  string          `json:"action"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 type socketLogin struct {
@@ -57,8 +64,16 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
+	// We expect the first message to be a identity payload.
+	var loginAction socketCommand
+	err = c.ReadJSON(&loginAction)
+	if err != nil {
+		log.Error().Err(err).Msg("Unparsable payload on login")
+		return
+	}
+
 	var login socketLogin
-	err = c.ReadJSON(&login)
+	err = json.Unmarshal(loginAction.Payload, &login)
 	if err != nil {
 		c.WriteJSON(SocketUpdate{
 			Time:    time.Now(),
@@ -69,18 +84,24 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var playerID string
-	var ok bool
-	playerID, ok = gs.Players[login.ClientID]
+	log.Info().Str("ClientID", login.ClientID).Str("Name", login.Name).Msg("Login Request")
+
+	playerID, ok := gs.Players[login.ClientID]
 	if !ok {
+		log.Info().Str("ClientID", login.ClientID).Msg("New Player")
+		gs.StateMutex.Lock()
 		playerID, err = gs.GameState.AddPlayer(login.Name)
+		gs.StateMutex.Unlock()
 		if err != nil {
 			c.WriteJSON(SocketUpdate{
 				Time:    time.Now(),
 				Type:    "error",
 				Payload: fmt.Sprintf("Unable to join game: %s", err),
 			})
+			return
 		}
+	} else {
+		log.Info().Str("ClientID", login.ClientID).Msg("Rejoining")
 	}
 	gs.Players[login.ClientID] = playerID
 
@@ -88,7 +109,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	err = c.WriteJSON(SocketUpdate{
 		Time:    time.Now(),
 		Type:    "whoami",
-		Payload: playerID,
+		Payload: playerID.String(),
 	})
 
 	if err != nil {
@@ -97,53 +118,68 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Give them the game state
+	gs.StateMutex.RLock()
 	err = c.WriteJSON(SocketUpdate{
 		Time:    time.Now(),
 		Type:    "state",
 		Payload: gs.GameState,
 	})
-
+	gs.StateMutex.RUnlock()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to send initial gamestate")
 		return
 	}
 
-	// TODO: manage timeouts for read and write timers
 	// Create a channel for gamestate updates.
-	readChan := make(chan []byte)
 	updateChan := make(chan interface{})
 	gs.PlayerStreams[login.ClientID] = updateChan
 	errChan := make(chan error)
 
+	defer func() {
+		close(updateChan)
+		close(errChan)
+		delete(gs.PlayerStreams, login.ClientID)
+	}()
+
 	go func() {
 		for {
-			_, message, err := c.ReadMessage()
+			var msg socketCommand
+			err = c.ReadJSON(&msg)
 			if err != nil {
-				log.Error().Err(err).Msg("Error reading message")
-				// If unexpected close message, handle
-				errChan <- err
-				return
+				if websocket.IsUnexpectedCloseError(err) {
+					// Websocket closed
+					log.Error().Err(err).Msg("UnexpectedCloseError")
+					errChan <- err
+					return
+				}
+
+				log.Error().Err(err).Msg("Unexpected payload from client")
+				updateChan <- SocketUpdate{
+					Time:    time.Now(),
+					Type:    "error",
+					Payload: "Could not parse command",
+				}
 			}
-			log.Info().Str("message", string(message)).Msg("Message received")
-			readChan <- message
+			err = gs.HandleAction(msg, playerID)
+			if err != nil {
+				log.Error().Err(err).Msg("Error handling action")
+				updateChan <- SocketUpdate{
+					Time:    time.Now(),
+					Type:    "error",
+					Payload: err.Error(),
+				}
+			}
 		}
 	}()
 
 	for {
 		select {
-		case <-updateChan:
+		case update := <-updateChan:
 			// TODO: Handle rolls
-			err = c.WriteJSON(SocketUpdate{
-				Time:    time.Now(),
-				Type:    "state",
-				Payload: gs.GameState,
-			})
+			err = c.WriteJSON(update)
 			if err != nil {
-				log.Error().Err(err).Msg("Error sending state update... closing conn")
-				return
+				log.Error().Err(err).Msg("Error sending state update closing conn")
 			}
-		case <-readChan:
-			// TODO: Handle any incoming messages
 		case err := <-errChan:
 			log.Error().Err(err).Msg("Closing websocket processor")
 			return
@@ -151,110 +187,80 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// State is the handler for just rendering the state.
-func (gs *GameServer) State(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", "http://localhost:9000")
-	err := json.NewEncoder(w).Encode(gs.GameState)
-	if err != nil {
-		log.Error().Err(err)
-		w.WriteHeader(http.StatusInternalServerError)
+// HandleAction is the central entry point for applying all player actions.
+func (gs *GameServer) HandleAction(action socketCommand, playerID xid.ID) error {
+	log.Info().Str("action", action.Action).Str("player", playerID.String()).Msg("received action")
+	switch action.Action {
+	case "start":
+		gs.StateMutex.Lock()
+		err := gs.GameState.StartGame()
+		gs.StateMutex.Unlock()
+		gs.PublishState()
+		if err != nil {
+			return err
+		}
+	case "reveal-roll":
+		log.Info().Msg("Reveal roll")
+		var reveal [3]bool
+		if err := json.Unmarshal(action.Payload, &reveal); err != nil {
+			return err
+		}
+		gs.StateMutex.Lock()
+		err := gs.GameState.Reveal(playerID, reveal)
+		gs.StateMutex.Unlock()
+		gs.PublishState()
+		if err != nil {
+			return err
+		}
+	case "apply-roll":
+		log.Info().Msg("Apply roll")
+		gs.StateMutex.Lock()
+		err := gs.GameState.ApplyRoll(playerID)
+		gs.StateMutex.Unlock()
+		gs.PublishState()
+		if err != nil {
+			return err
+		}
+	case "hodl":
+		log.Info().Msg("Hodl receved")
+		gs.StateMutex.Lock()
+		err := gs.GameState.Ready(playerID)
+		gs.StateMutex.Unlock()
+		gs.PublishState()
+		if err != nil {
+			return err
+		}
+	case "transact":
+		var transaction struct {
+			Stonk    xid.ID `json:"stonk"`
+			Quantity int    `json:"quantity"`
+		}
+		if err := json.Unmarshal(action.Payload, &transaction); err != nil {
+			return err
+		}
+		gs.StateMutex.Lock()
+		err := gs.GameState.Transact(playerID, transaction.Stonk, transaction.Quantity)
+		gs.StateMutex.Unlock()
+		gs.PublishState()
+		if err != nil {
+			return err
+		}
+	default:
+		log.Error().Str("action", action.Action).Msg("Received unknown action message")
 	}
+	return nil
 }
 
-type rollPayload struct {
-	PlayerID xid.ID `json:"player"`
-}
-
-type rollResponse struct {
-	RollID xid.ID       `json:"roll_id"`
-	Roll   *stonks.Roll `json:"roll"`
-}
-
-// AcquireRoll
-func (gs *GameServer) AcquireRoll(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", "http://localhost:9000")
-
-	req := rollPayload{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid payload")
-		log.Error().Err(err).Msg("Unable to parse payload")
-		return
+// PublishState informs all players of a state change.
+func (gs *GameServer) PublishState() {
+	gs.StateMutex.RLock()
+	update := SocketUpdate{
+		Time:    time.Now(),
+		Type:    "state",
+		Payload: gs.GameState,
 	}
-
-	roll, err := gs.GameState.Roll(req.PlayerID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error making roll")
-		log.Error().Err(err).Msg("Failed to get roll")
-		return
-	}
-
-	rid := xid.New()
-
-	gs.Rolls[rid] = PendingRoll{
-		RollID:   rid,
-		PlayerID: req.PlayerID,
-		Roll:     roll,
-	}
-
-	err = json.NewEncoder(w).Encode(&rollResponse{
-		RollID: rid,
-		Roll:   roll,
-	})
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error making roll")
-		log.Error().Err(err).Msg("Unable to write response")
-		return
-	}
-}
-
-type applyRollPayload struct {
-	RollID xid.ID `json:"roll_id"`
-}
-
-type applyRollResponse struct {
-}
-
-func (gs *GameServer) ApplyRoll(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", "http://localhost:9000")
-
-	req := applyRollPayload{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid payload")
-		log.Error().Err(err).Msg("Unable to parse payload")
-		return
-	}
-
-	rollEntry, ok := gs.Rolls[req.RollID]
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid roll ID")
-		log.Error().Err(err).Msgf("Invalid roll ID: %s", req.RollID)
-		return
-	}
-
-	delete(gs.Rolls, req.RollID)
-
-	err = gs.GameState.ApplyRoll(rollEntry.Roll)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Failed to apply roll")
-		log.Error().Err(err).Msg("Failed to apply roll")
-		return
-	}
-
-	err = json.NewEncoder(w).Encode(&applyRollResponse{})
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error applying roll")
-		log.Error().Err(err).Msg("Unable to write response")
-		return
+	gs.StateMutex.RUnlock()
+	for _, c := range gs.PlayerStreams {
+		c <- update
 	}
 }

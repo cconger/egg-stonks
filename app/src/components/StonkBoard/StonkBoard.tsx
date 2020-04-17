@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Chart from 'react-apexcharts';
 
-import {Stonk} from 'stonks/game/state';
+import {Stonk, GetPrice} from 'stonks/game/state';
 import './style.css';
 
 interface customFormatter {
@@ -85,7 +85,7 @@ export const StonkBoard = (props: StonkProps) => {
     },
   };
 
-  let lastPrice = props.stonk.history[props.stonk.history.length - 1][3] / 100;
+  const lastPrice = GetPrice(props.stonk);
 
   return (
     <div className="stonk">
