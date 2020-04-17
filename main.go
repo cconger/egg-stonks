@@ -25,6 +25,17 @@ func main() {
 		Handler:      r,
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		// debug port
+		port = "8080"
+	}
+
+	webroot := os.Getenv("WEBROOT")
+	if webroot == "" {
+		webroot = "./app/dist/"
+	}
+
 	registry := handlers.NewGameRegistry()
 
 	r.HandleFunc("/_ah/health", healthCheckHandler)
@@ -32,22 +43,9 @@ func main() {
 
 	r.HandleFunc("/games/create", registry.CreateGame).Methods("POST")
 	r.HandleFunc("/game/{gameID}/join", registry.JoinGame)
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./app/dist/")))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(webroot)))
 
-	/*
-		r.HandleFunc("/game/{gameID}/state", handlers.State).Methods("GET")
-		r.HandleFunc("/game/{gameID}/roll", handlers.AcquireRoll).Methods("POST")
-		r.HandleFunc("/game/{gameID/applyroll", handlers.ApplyRoll).Methods("POST")
-
-		r.HandleFunc("/game/simulate", handlers.SimulateGame)
-	*/
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		// debug port
-		port = "8080"
-	}
-
+	log.Printf("Reading webroot from %s", webroot)
 	log.Printf("Listening on port %s", port)
 	if err := s.ListenAndServe(); err != nil {
 		log.Fatal().Err(err)
