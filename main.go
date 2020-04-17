@@ -17,8 +17,14 @@ func main() {
 
 	r := mux.NewRouter()
 
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		// debug port
+		port = "8080"
+	}
 	s := &http.Server{
-		Addr:         "0.0.0.0:8080",
+		Addr:         "0.0.0.0:" + port,
 		WriteTimeout: time.Second * 10,
 		ReadTimeout:  time.Second * 10,
 		IdleTimeout:  time.Second * 60,
@@ -41,12 +47,6 @@ func main() {
 
 		r.HandleFunc("/game/simulate", handlers.SimulateGame)
 	*/
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		// debug port
-		port = "8080"
-	}
 
 	log.Printf("Listening on port %s", port)
 	if err := s.ListenAndServe(); err != nil {
