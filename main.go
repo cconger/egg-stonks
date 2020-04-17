@@ -18,20 +18,6 @@ func main() {
 	r := mux.NewRouter()
 
 	port := os.Getenv("PORT")
-
-	if port == "" {
-		// debug port
-		port = "8080"
-	}
-	s := &http.Server{
-		Addr:         "0.0.0.0:" + port,
-		WriteTimeout: time.Second * 10,
-		ReadTimeout:  time.Second * 10,
-		IdleTimeout:  time.Second * 60,
-		Handler:      r,
-	}
-
-	port := os.Getenv("PORT")
 	if port == "" {
 		// debug port
 		port = "8080"
@@ -40,6 +26,14 @@ func main() {
 	webroot := os.Getenv("WEBROOT")
 	if webroot == "" {
 		webroot = "./app/dist/"
+	}
+
+	s := &http.Server{
+		Addr:         "0.0.0.0:" + port,
+		WriteTimeout: time.Second * 10,
+		ReadTimeout:  time.Second * 10,
+		IdleTimeout:  time.Second * 60,
+		Handler:      r,
 	}
 
 	registry := handlers.NewGameRegistry()
