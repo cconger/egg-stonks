@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/rs/xid"
-	"github.com/rs/zerolog/log"
 )
 
 /*
@@ -213,7 +212,6 @@ func (p *Player) buy(stonk *Stonk, quantity int) error {
 
 	var holding *Holding
 	for _, h := range p.Portfolio {
-		log.Info().Str("holding", h.Stonk.String()).Str("search", stonk.ID.String()).Msg("Checking holdings")
 		if h.Stonk == stonk.ID {
 			holding = h
 		}
@@ -240,7 +238,6 @@ func (p *Player) sell(stonk *Stonk, quantity int) (int, error) {
 			q := h.sell(quantity)
 
 			if h.total() > 0 {
-				log.Info().Int("total", h.total()).Msg("Still has holding...")
 				newHoldings = append(newHoldings, h)
 			}
 
@@ -598,12 +595,7 @@ func (gs *GameState) advanceTurn() error {
 		if gs.isDone() {
 			return nil
 		}
-		for _, s := range gs.Stonks {
-			_, err := s.getHistory(gs.Turn.Number)
-			if err != nil {
-				log.Error().Err(err).Msg("Unable to hydrate history")
-			}
-		}
+
 		return gs.startBuying()
 	} else {
 		return fmt.Errorf("Game in unrecoverable state")

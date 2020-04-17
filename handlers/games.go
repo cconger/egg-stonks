@@ -39,7 +39,10 @@ type createGameResponse struct {
 
 // CreateGame is the http handler for users to create a new game in the registry
 func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
-	gr.Games["101"] = &GameServer{
+	id := xid.New()
+
+	gr.Games[id.String()] = &GameServer{
+		GameID: id,
 		GameState: stonks.NewGame(10, 4, []string{
 			"Eggs",
 			"Resin",
@@ -52,13 +55,13 @@ func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
 		PlayerStreams: make(map[string]chan interface{}),
 	}
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "New Game Created: 101")
+	fmt.Fprintf(w, "New Game Created: %s", id.String())
 }
 
 // JoinGame is the central entrypoint.  A gameid is specified in the path and we route the request to the sub
 // game server to handle.
 func (gr *GameRegistry) JoinGame(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", "http://localhost:9000")
+	w.Header().Add("Access-Control-Allow-Origin", "*")
 	vars := mux.Vars(r)
 
 	gameID, ok := vars["gameID"]

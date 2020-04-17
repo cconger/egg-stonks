@@ -27,12 +27,12 @@ func main() {
 
 	registry := handlers.NewGameRegistry()
 
-	r.HandleFunc("/", handle)
 	r.HandleFunc("/_ah/health", healthCheckHandler)
 	r.HandleFunc("/game/create", registry.CreateGame)
 
 	r.HandleFunc("/games/create", registry.CreateGame).Methods("POST")
 	r.HandleFunc("/game/{gameID}/join", registry.JoinGame)
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./app/dist/")))
 
 	/*
 		r.HandleFunc("/game/{gameID}/state", handlers.State).Methods("GET")

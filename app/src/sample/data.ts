@@ -2,7 +2,7 @@ import {GameState, Phase} from '../game/state'
 
 export const data: GameState = {
   turn: {
-    index: 4,
+    number: 4,
     phase: Phase.Transact,
     player: "d9c3df04-742d-48fb-8d47-de16b522aba7",
   },

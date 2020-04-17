@@ -112,7 +112,7 @@ export const GameClient = (props: GameClientProps) => {
     return (
       <>
         {errorContent}
-        <PlayerStaging state={gamestate} currentPlayer={playerID} onStartGame={startGame} />
+        <PlayerStaging gameID={props.gameID} state={gamestate} currentPlayer={playerID} onStartGame={startGame} />
       </>
     )
   }

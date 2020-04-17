@@ -30,6 +30,7 @@ var upgrader = websocket.Upgrader{
 // GameServer is a server for a single game instance.  It encapsulates the gamestate and manages the the
 // webscoket connections to the game.
 type GameServer struct {
+	GameID      xid.ID
 	StateMutex  sync.RWMutex
 	GameState   *stonks.GameState
 	PendingRoll *PendingRoll
@@ -57,9 +58,10 @@ type socketLogin struct {
 
 // JoinGame is the main entry for a game websocket.  It upgrades to a websocket connection.
 func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
+	logger := log.With().Str("game", gs.GameID.String()).Logger()
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Error().Err(err).Msg("Unable to upgrade connection")
+		logger.Error().Err(err).Msg("Unable to upgrade connection")
 		return
 	}
 	defer c.Close()
@@ -68,7 +70,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	var loginAction socketCommand
 	err = c.ReadJSON(&loginAction)
 	if err != nil {
-		log.Error().Err(err).Msg("Unparsable payload on login")
+		logger.Error().Err(err).Msg("Unparsable payload on login")
 		return
 	}
 
@@ -80,15 +82,15 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			Type:    "error",
 			Payload: "Did not understand your login message",
 		})
-		log.Error().Err(err).Msg("Unexpected payload on login")
+		logger.Error().Err(err).Msg("Unexpected payload on login")
 		return
 	}
 
-	log.Info().Str("ClientID", login.ClientID).Str("Name", login.Name).Msg("Login Request")
+	logger = logger.With().Str("ClientID", login.ClientID).Str("Name", login.Name).Logger()
 
 	playerID, ok := gs.Players[login.ClientID]
 	if !ok {
-		log.Info().Str("ClientID", login.ClientID).Msg("New Player")
+		logger.Info().Msg("New Player")
 		gs.StateMutex.Lock()
 		playerID, err = gs.GameState.AddPlayer(login.Name)
 		gs.StateMutex.Unlock()
@@ -101,7 +103,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		log.Info().Str("ClientID", login.ClientID).Msg("Rejoining")
+		logger.Info().Msg("Rejoining")
 	}
 	gs.Players[login.ClientID] = playerID
 
@@ -113,7 +115,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		log.Error().Err(err).Msg("Failed on notifying whoami")
+		logger.Error().Err(err).Msg("Failed on notifying whoami")
 		return
 	}
 
@@ -126,7 +128,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	})
 	gs.StateMutex.RUnlock()
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to send initial gamestate")
+		logger.Error().Err(err).Msg("Failed to send initial gamestate")
 		return
 	}
 
@@ -148,12 +150,12 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err) {
 					// Websocket closed
-					log.Error().Err(err).Msg("UnexpectedCloseError")
+					logger.Error().Err(err).Msg("UnexpectedCloseError")
 					errChan <- err
 					return
 				}
 
-				log.Error().Err(err).Msg("Unexpected payload from client")
+				logger.Error().Err(err).Msg("Unexpected payload from client")
 				updateChan <- SocketUpdate{
 					Time:    time.Now(),
 					Type:    "error",
@@ -162,7 +164,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			}
 			err = gs.HandleAction(msg, playerID)
 			if err != nil {
-				log.Error().Err(err).Msg("Error handling action")
+				logger.Error().Err(err).Msg("Error handling action")
 				updateChan <- SocketUpdate{
 					Time:    time.Now(),
 					Type:    "error",
@@ -178,10 +180,10 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			// TODO: Handle rolls
 			err = c.WriteJSON(update)
 			if err != nil {
-				log.Error().Err(err).Msg("Error sending state update closing conn")
+				logger.Error().Err(err).Msg("Error sending state update closing conn")
 			}
 		case err := <-errChan:
-			log.Error().Err(err).Msg("Closing websocket processor")
+			logger.Error().Err(err).Msg("Closing websocket processor")
 			return
 		}
 	}
@@ -189,9 +191,10 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 
 // HandleAction is the central entry point for applying all player actions.
 func (gs *GameServer) HandleAction(action socketCommand, playerID xid.ID) error {
-	log.Info().Str("action", action.Action).Str("player", playerID.String()).Msg("received action")
+	logger := log.With().Str("action", action.Action).Str("player", playerID.String()).Logger()
 	switch action.Action {
 	case "start":
+		logger.Info().Msg("Start")
 		gs.StateMutex.Lock()
 		err := gs.GameState.StartGame()
 		gs.StateMutex.Unlock()
@@ -200,7 +203,7 @@ func (gs *GameServer) HandleAction(action socketCommand, playerID xid.ID) error 
 			return err
 		}
 	case "reveal-roll":
-		log.Info().Msg("Reveal roll")
+		logger.Info().Msg("Reveal roll")
 		var reveal [3]bool
 		if err := json.Unmarshal(action.Payload, &reveal); err != nil {
 			return err
@@ -213,7 +216,7 @@ func (gs *GameServer) HandleAction(action socketCommand, playerID xid.ID) error 
 			return err
 		}
 	case "apply-roll":
-		log.Info().Msg("Apply roll")
+		logger.Info().Msg("Apply roll")
 		gs.StateMutex.Lock()
 		err := gs.GameState.ApplyRoll(playerID)
 		gs.StateMutex.Unlock()
@@ -222,7 +225,7 @@ func (gs *GameServer) HandleAction(action socketCommand, playerID xid.ID) error 
 			return err
 		}
 	case "hodl":
-		log.Info().Msg("Hodl receved")
+		logger.Info().Msg("Hodl receved")
 		gs.StateMutex.Lock()
 		err := gs.GameState.Ready(playerID)
 		gs.StateMutex.Unlock()
@@ -246,7 +249,7 @@ func (gs *GameServer) HandleAction(action socketCommand, playerID xid.ID) error 
 			return err
 		}
 	default:
-		log.Error().Str("action", action.Action).Msg("Received unknown action message")
+		logger.Error().Str("action", action.Action).Msg("Received unknown action message")
 	}
 	return nil
 }

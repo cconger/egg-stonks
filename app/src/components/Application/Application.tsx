@@ -14,7 +14,6 @@ export const Application = () => {
   const [{clientID, playerName, gameID}, setState] = React.useState<ApplicationState>(() => {
 
     // Parse query params for gameID
-
     let clientID = localStorage.getItem('client_id');
     if (clientID == null) {
       clientID = nanoid();
@@ -26,8 +25,19 @@ export const Application = () => {
       playerName = undefined;
     }
 
+    let params = new URLSearchParams(window.location.search);
+
+    let gameID = params.get("game")
+    if (gameID !== null) {
+      history.replaceState({}, '', '/');
+      sessionStorage.setItem("game_id", gameID);
+    } else {
+      // if this was a refresh?
+      gameID = sessionStorage.getItem('game_id');
+    }
+
     return {
-      gameID: "101",
+      gameID,
       clientID,
       playerName,
     }
@@ -41,7 +51,7 @@ export const Application = () => {
     }))
   }
 
-  if (gameID === undefined) {
+  if (!gameID) {
     return <div> WTF no game ID</div>
   }
 

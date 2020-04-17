@@ -41,7 +41,7 @@ export enum Phase {
 }
 
 export interface Turn {
-  index: number;
+  number: number;
   phase: Phase;
   player: string;
 }
