@@ -36,9 +36,13 @@ export const GameClient = (props: GameClientProps) => {
         }))
       },
       OnClose: () => {
+        if (!connected) {
+          // Reset, we never connected.
+          sessionStorage.removeItem('game_id')
+          window.location.replace(document.URL)
+        }
         setState((state) => ({
           ...state,
-          connected: false,
         }));
       },
       OnError: (error: ErrorMsg) => {
@@ -78,7 +82,7 @@ export const GameClient = (props: GameClientProps) => {
   if (error) {
     errorContent = (
       <div className="error">
-        {error}
+        {error.Message}
       </div>
     )
   }

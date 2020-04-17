@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/cconger/egg-stonks/stonks"
 	"github.com/gorilla/mux"
 	"github.com/rs/xid"
+	"github.com/rs/zerolog/log"
 )
 
 type gameConfig struct {
@@ -34,7 +36,7 @@ func NewGameRegistry() *GameRegistry {
 }
 
 type createGameResponse struct {
-	GameID string
+	GameID string `json:"game_id"`
 }
 
 // CreateGame is the http handler for users to create a new game in the registry
@@ -55,7 +57,12 @@ func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
 		PlayerStreams: make(map[string]chan interface{}),
 	}
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "New Game Created: %s", id.String())
+	err := json.NewEncoder(w).Encode(&createGameResponse{
+		GameID: id.String(),
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("unable to return game id")
+	}
 }
 
 // JoinGame is the central entrypoint.  A gameid is specified in the path and we route the request to the sub

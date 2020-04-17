@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { nanoid } from 'nanoid';
 
+import {Landing} from 'stonks/components/Landing';
 import {GameClient} from 'stonks/components/GameBoard';
 import {NamePicker} from 'stonks/components/NamePicker';
 
@@ -52,7 +53,7 @@ export const Application = () => {
   }
 
   if (!gameID) {
-    return <div> WTF no game ID</div>
+    return <Landing />
   }
 
   if (playerName === undefined) {

@@ -51,7 +51,12 @@ export class SocketClient {
     this.delegate = handler;
     this.clientID = clientID;
 
-    this.socket = new WebSocket(`ws://localhost:8080/game/${id}/join`);
+    let a = new URL(document.URL);
+    a.protocol = "ws";
+    a.pathname = `/game/${id}/join`;
+
+    this.socket = new WebSocket(a.toString());
+    // Right now redirect all websocket failures to landing
     this.socket.addEventListener('open', (event) => { this.onOpen(event); })
     this.socket.addEventListener('error', (event) => { this.onError(event); })
     this.socket.addEventListener('message', (event) => { this.onMessage(event); })
@@ -87,6 +92,10 @@ export class SocketClient {
 
   onError(event: Event) {
     console.log("Socket error", event);
+    this.delegate.OnError({
+      ID: "404",
+      Message: "Socket error, refresh?",
+    })
   }
 
   onClose(event: CloseEvent) {
