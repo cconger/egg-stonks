@@ -72,10 +72,9 @@ type Turn struct {
 
 // Stonk is a description of a stonk thorugh the course of a game
 type Stonk struct {
-	ID       xid.ID       `json:"id"`
-	Name     string       `json:"name"`
-	History  []*TurnQuote `json:"history"`
-	unlisted bool
+	ID      xid.ID       `json:"id"`
+	Name    string       `json:"name"`
+	History []*TurnQuote `json:"history"`
 }
 
 func (s *Stonk) getHistory(turn int) (*TurnQuote, error) {
@@ -119,10 +118,6 @@ func (s *Stonk) movePrice(turn int, movement int) (int, error) {
 		return 0, err
 	}
 
-	if s.unlisted {
-		return 0, nil
-	}
-
 	hist.Close += movement
 	if hist.Close < hist.Low {
 		hist.Low = hist.Close
@@ -135,7 +130,6 @@ func (s *Stonk) movePrice(turn int, movement int) (int, error) {
 		hist.Close = 200
 	}
 	if hist.Close <= 0 {
-		s.unlisted = true
 		hist.Close = 0
 	}
 
@@ -158,6 +152,14 @@ func (s *Stonk) split() {
 	hist.High = hist.High / 2
 	hist.Low = hist.Low / 2
 	hist.Open = hist.Open / 2
+	hist.Close = 100
+}
+
+func (s *Stonk) relist() {
+	hist, err := s.getHistory(len(s.History) - 1)
+	if err != nil {
+		return
+	}
 	hist.Close = 100
 }
 
@@ -199,6 +201,19 @@ func (p *Player) split(stonk *Stonk) {
 			h.split()
 		}
 	}
+}
+
+func (p *Player) unlisted(stonk *Stonk) {
+	// Remove all holdings of this stonk
+	newHoldings := []*Holding{}
+
+	for _, h := range p.Portfolio {
+		if h.Stonk != stonk.ID {
+			newHoldings = append(newHoldings, h)
+		}
+	}
+
+	p.Portfolio = newHoldings
 }
 
 func (p *Player) buy(stonk *Stonk, quantity int) error {
@@ -460,6 +475,20 @@ func (gs *GameState) applyStockMove(roll *Roll) error {
 			player.split(stonk)
 		}
 		stonk.split()
+		gs.addLog(&StockSplit{
+			Stonk: stonk.ID,
+		})
+	}
+
+	if p <= 0 {
+		for _, player := range gs.Players {
+			player.unlisted(stonk)
+		}
+		stonk.relist()
+
+		gs.addLog(&StockUnlisted{
+			Stonk: stonk.ID,
+		})
 	}
 	gs.reconcileValue()
 
@@ -474,6 +503,11 @@ func (gs *GameState) applyDividend(roll *Roll) error {
 	player := gs.playerByID(roll.Player)
 	if player == nil {
 		return fmt.Errorf("Unknown player %v", roll.Player)
+	}
+
+	if stonk.price() < 100 {
+		// Do not pay dividend under $1
+		return nil
 	}
 
 	log := &Dividend{

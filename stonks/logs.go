@@ -49,6 +49,26 @@ type DividendBenefactor struct {
 	Quantity int
 }
 
+// StockSplit is the log for when a stock has split and everyone received extra
+type StockSplit struct {
+	Stonk xid.ID
+}
+
+// Type implements the Log Interface
+func (sp *StockSplit) Type() string {
+	return "split"
+}
+
+// StockUnlisted is the log entry for when a stock has become unlisted and everyone loses their shares
+type StockUnlisted struct {
+	Stonk xid.ID
+}
+
+// Type implements the Log Interface
+func (su *StockUnlisted) Type() string {
+	return "unlisted"
+}
+
 // StockPurchase is a log entry where a stock was purchased by a player
 type StockPurchase struct {
 	Player   xid.ID
