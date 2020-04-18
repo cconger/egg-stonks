@@ -13,20 +13,23 @@ import (
 )
 
 func main() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	r := mux.NewRouter()
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		// debug port
 		port = "8080"
 	}
 
+	debug := os.Getenv("DEBUG")
+	if debug != "" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
+
 	webroot := os.Getenv("WEBROOT")
 	if webroot == "" {
 		webroot = "./app/dist/"
 	}
+
+	r := mux.NewRouter()
 
 	s := &http.Server{
 		Addr:         "0.0.0.0:" + port,
