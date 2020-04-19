@@ -45,13 +45,13 @@ func (d *Dividend) Type() string {
 
 // DividendBenefactor is a union of a player and how much they received for a dividend
 type DividendBenefactor struct {
-	Player   xid.ID
-	Quantity int
+	Player   xid.ID `json:"player"`
+	Quantity int    `json:"quantity"`
 }
 
 // StockSplit is the log for when a stock has split and everyone received extra
 type StockSplit struct {
-	Stonk xid.ID
+	Stonk xid.ID `json:"stonk"`
 }
 
 // Type implements the Log Interface
@@ -61,7 +61,7 @@ func (sp *StockSplit) Type() string {
 
 // StockUnlisted is the log entry for when a stock has become unlisted and everyone loses their shares
 type StockUnlisted struct {
-	Stonk xid.ID
+	Stonk xid.ID `json:"stonk"`
 }
 
 // Type implements the Log Interface
@@ -71,10 +71,10 @@ func (su *StockUnlisted) Type() string {
 
 // StockPurchase is a log entry where a stock was purchased by a player
 type StockPurchase struct {
-	Player   xid.ID
-	Stonk    xid.ID
-	Quantity int
-	Price    int
+	Player   xid.ID `json:"player"`
+	Stonk    xid.ID `json:"stonk"`
+	Quantity int    `json:"quantity"`
+	Price    int    `json:"price"`
 }
 
 // Type implements the Log interface
@@ -133,7 +133,7 @@ func (r *Ready) Type() string {
 
 // Split is a lot entry where a stock reached its max price and split
 type Split struct {
-	Stonk xid.ID
+	Stonk xid.ID `json:"stonk"`
 }
 
 // Type implements the Log interface

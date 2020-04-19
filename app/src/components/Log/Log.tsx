@@ -3,7 +3,7 @@ import * as React from 'react';
 import './style.css';
 
 import {Player,Stonk} from 'stonks/game/state';
-import {LogEntry, Dividend, Transaction, PriceChange, GameStarted} from 'stonks/game/logs'
+import {LogEntry} from 'stonks/game/logs'
 
 export interface LogProps {
   players: Player[];
@@ -13,11 +13,11 @@ export interface LogProps {
 
 export const Log = (props: LogProps) => {
   const lookupPlayer = (id: string) => {
-    return props.players[0];
+    return props.players.find((p) => (p.id === id));
   }
 
   const lookupStonk = (id: string) => {
-    return props.stonks[0];
+    return props.stonks.find((s) => (s.id === id));
   }
 
   let lines = props.log.map((entry, i) => (
@@ -57,6 +57,11 @@ interface LogLineProps {
   resolveStonk: (id: string) => Stonk;
 }
 
+interface LookUpSet {
+  getPlayer: (id: string) => Player;
+  getStonk: (id: string) => Stonk;
+}
+
 const timeFormatter = new Intl.DateTimeFormat('default', {
   hour12: false,
   hour: '2-digit',
@@ -64,6 +69,7 @@ const timeFormatter = new Intl.DateTimeFormat('default', {
 });
 
 const LogLine = (props: LogLineProps) => {
+  let player, stonk
   let body
   switch(props.entry.type) {
     case 'game-create':
@@ -74,30 +80,67 @@ const LogLine = (props: LogLineProps) => {
       )
       break;
     case 'dividend':
+      stonk = props.resolveStonk(props.entry.entry.stonk)
+      let v = (props.entry.entry.value/100).toFixed(2);
       body = (
         <>
-          A dividend was paid
+          Dividend paid on {stonk.name} @ ${v}
         </>
       )
       break;
-    case 'stock-split':
+    case 'ready':
+      player =  props.resolvePlayer(props.entry.entry.player)
       body = (
         <>
-          Stock split
+          {player.name} is HODLing
+        </>
+      )
+
+      break;
+    case 'split':
+      stonk = props.resolveStonk(props.entry.entry.stonk)
+      body = (
+        <>
+          {stonk.name} is splitting.  Resetting to $1 and doubling all existing holdings.
+        </>
+      )
+      break;
+    case 'unlisted':
+      stonk = props.resolveStonk(props.entry.entry.stonk)
+      body = (
+        <>
+          {stonk.name} hit $0, resetting to $1 and removing all shraes
         </>
       )
       break;
     case 'price-change':
+      player =  props.resolvePlayer(props.entry.entry.player)
+      stonk = props.resolveStonk(props.entry.entry.stonk)
+      let dir = "increased";
+      let mov = (props.entry.entry.movement/100).toFixed(2);
+      if (props.entry.entry.movement < 0) {
+        dir = "decreased";
+        mov = (-props.entry.entry.movement/100).toFixed(2);
+      }
+      
       body = (
         <>
-          Price Change
+          Price of {stonk.name} {dir} by ${mov}
         </>
       )
       break;
     case 'transaction':
+      player =  props.resolvePlayer(props.entry.entry.player)
+      stonk = props.resolveStonk(props.entry.entry.stonk)
+      let q = props.entry.entry.quantity
+      let direction = "bought"
+      if (props.entry.entry.quantity < 0) {
+        q = -q
+        direction = "sold"
+      }
       body = (
         <>
-          Somebody bought something
+          {player.name} {direction} {q} shares of {stonk.name}
         </>
       )
       break;

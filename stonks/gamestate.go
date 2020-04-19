@@ -452,17 +452,17 @@ func (gs *GameState) applyStockMove(roll *Roll) error {
 		return fmt.Errorf("Unknown player %v", roll.Player)
 	}
 
-	log := &PriceChange{
-		Player:   player.ID,
-		Stonk:    stonk.ID,
-		Movement: roll.Value,
-	}
-	gs.addLog(log)
-
 	delta := roll.Value
 	if roll.Action == ActionDown {
 		delta = -roll.Value
 	}
+
+	log := &PriceChange{
+		Player:   player.ID,
+		Stonk:    stonk.ID,
+		Movement: delta,
+	}
+	gs.addLog(log)
 
 	p, err := stonk.movePrice(gs.Turn.Number, delta)
 	if err != nil {
@@ -630,6 +630,11 @@ func (gs *GameState) advanceTurn() error {
 			return nil
 		}
 
+		// Prehydrate all the candlesticks for the next turn
+		for _, s := range gs.Stonks {
+			s.getHistory(gs.Turn.Number)
+		}
+
 		return gs.startBuying()
 	} else {
 		return fmt.Errorf("Game in unrecoverable state")
@@ -698,7 +703,7 @@ func (gs *GameState) Transact(playerID xid.ID, stonkID xid.ID, quantity int) err
 		if err != nil {
 			return fmt.Errorf("Unable to sell: %s", err)
 		}
-		quantity = q
+		quantity = -q
 	}
 
 	gs.addLog(&StockPurchase{
