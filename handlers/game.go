@@ -144,6 +144,8 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	go func() {
+		c.SetPongHandler(func(string) error { logger.Debug().Msg("Received pong"); return nil })
+
 		for {
 			var msg socketCommand
 			err = c.ReadJSON(&msg)
@@ -174,6 +176,8 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case update := <-updateChan:
@@ -185,6 +189,12 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 		case err := <-errChan:
 			logger.Error().Err(err).Msg("Closing websocket processor")
 			return
+		case <-ticker.C:
+			logger.Debug().Msg("Sending ping")
+			if err := c.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				logger.Error().Err(err).Msg("Error sending ping")
+				return
+			}
 		}
 	}
 }

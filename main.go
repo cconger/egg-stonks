@@ -19,9 +19,11 @@ func main() {
 		port = "8080"
 	}
 
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	debug := os.Getenv("DEBUG")
 	if debug != "" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
 	webroot := os.Getenv("WEBROOT")
