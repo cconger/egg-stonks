@@ -39,7 +39,6 @@ Note: The `DEBUG` environment variable increases logging output and uses a prett
 
 ## TODO list:
 
-* Give users the ability to specify names of the commodities on game creation.
 * Add a "New Game" button to the lack-luster Game Over screen.
 * Add a graph showing player value over each turn on Game Over screen (this data is already sent to the client).
 * Support taking Loans
@@ -52,3 +51,4 @@ Note: The `DEBUG` environment variable increases logging output and uses a prett
   * Flash green or red when Player holding increases or decreases in value
   * Flash player holding when they buy or sell.
 * Collapse multiple purchase logs of a single commodity into a single line to avoid spamming during buy phase
+* Abstract the error dropdown to a utility component that I can use on all screens intead of manually doing it 3 times
