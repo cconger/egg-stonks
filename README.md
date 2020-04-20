@@ -39,16 +39,16 @@ Note: The `DEBUG` environment variable increases logging output and uses a prett
 
 ## TODO list:
 
- • Give users the ability to specify names of the commodities on game creation.
- • Add a "New Game" button to the lack-luster Game Over screen.
- • Add a graph showing player value over each turn on Game Over screen (this data is already sent to the client).
- • Support taking Loans
- • Build out persistence to afford the ability to resume a game on server crash
-    • Allow horizontal scaling by moving game server logic behind websocket gateways.
- • Investigate issue on rapidly sending errors to a single client
- • Remove player when connection drops before a game starts.
- • Add visual indicators to values when they move
-    • Flash green or red when commodity prices move
-    • Flash green or red when Player holding increases or decreases in value
-    • Flash player holding when they buy or sell.
- • Collapse multiple purchase logs of a single commodity into a single line to avoid spamming during buy phase
+* Give users the ability to specify names of the commodities on game creation.
+* Add a "New Game" button to the lack-luster Game Over screen.
+* Add a graph showing player value over each turn on Game Over screen (this data is already sent to the client).
+* Support taking Loans
+* Build out persistence to afford the ability to resume a game on server crash
+  * Allow horizontal scaling by moving game server logic behind websocket gateways.
+* Investigate issue on rapidly sending errors to a single client
+* Remove player when connection drops before a game starts.
+* Add visual indicators to values when they move
+  * Flash green or red when commodity prices move
+  * Flash green or red when Player holding increases or decreases in value
+  * Flash player holding when they buy or sell.
+* Collapse multiple purchase logs of a single commodity into a single line to avoid spamming during buy phase
