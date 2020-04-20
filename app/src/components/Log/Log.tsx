@@ -145,7 +145,7 @@ const LogLine = (props: LogLineProps) => {
       )
       break;
     default:
-      console.log("Unknown log type:", props.entry)
+      console.error("Unknown log type:", props.entry)
       body = (
         <>
           Unknown Log Type

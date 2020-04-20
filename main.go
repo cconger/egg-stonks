@@ -45,6 +45,7 @@ func main() {
 
 	r.HandleFunc("/_ah/health", healthCheckHandler)
 	r.HandleFunc("/game/create", registry.CreateGame)
+	r.HandleFunc("/healthz", healthCheckHandler)
 
 	r.HandleFunc("/games/create", registry.CreateGame).Methods("POST")
 	r.HandleFunc("/game/{gameID}/join", registry.JoinGame)
@@ -55,15 +56,6 @@ func main() {
 	if err := s.ListenAndServe(); err != nil {
 		log.Fatal().Err(err)
 	}
-}
-
-func handle(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("handle")
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	fmt.Fprintf(w, "hello world")
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {

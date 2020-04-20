@@ -22,3 +22,9 @@
 
 .game-url {
 }
+
+.staging-buttons {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}

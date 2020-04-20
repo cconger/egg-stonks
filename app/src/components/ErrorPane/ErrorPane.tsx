@@ -29,8 +29,6 @@ export const ErrorPane = (props: ErrorPaneProps) => {
     errors = null
   }
 
-  console.log("errorList", errorList)
-
   let error = errorList[0];
   const handle = () => {
     setErrorList(errorList.slice(1));

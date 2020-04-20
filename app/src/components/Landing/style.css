@@ -1,4 +1,63 @@
+.new-game {
+  text-align: right;
+}
+
 .stonks-title {
   font-size: 2rem;
   margin-bottom: 2rem;
+}
+
+.customize {
+  margin-top: 1em;
+  padding: 0.5em 1em;
+  font-size: 1.5rem;
+}
+
+.clickable {
+  cursor: pointer;
+  border: solid thin white;
+  line-height: 2em;
+}
+
+.clickable:hover {
+  font-weight: bold;
+  background: rgba(255,255,255,0.2);
+}
+
+.customize-stonk-input {
+  border: solid thin white;
+  color: white;
+  background: #111;
+  flex-grow: 1;
+  font-size: 1.5rem;
+  font-family: "Inconsolata", monospace;
+  text-transform: uppercase;
+  padding: 0.2em 0.3em;
+}
+
+.customize-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 1em;
+}
+
+.chevron::before {
+	border-style: solid;
+	border-width: 0.25em 0.25em 0 0;
+	content: '';
+	display: inline-block;
+	height: 0.4em;
+	left: 0.15em;
+	position: relative;
+  bottom: 0.1em;
+	transform: rotate(135deg);
+	vertical-align: baseline;
+	width: 0.4em;
+  line-height: 2em;
+}
+
+.chevron {
+  position: relative;
+  margin-left: 0.5em;
 }

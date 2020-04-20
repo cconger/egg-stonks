@@ -23,9 +23,7 @@ type joinGamePayload struct {
 	Name string `json:"name"`
 }
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+var upgrader = websocket.Upgrader{}
 
 // GameServer is a server for a single game instance.  It encapsulates the gamestate and manages the the
 // webscoket connections to the game.

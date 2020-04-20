@@ -46,14 +46,12 @@ export const GameClient = (props: GameClientProps) => {
         }));
       },
       OnError: (error: ErrorMsg) => {
-        console.log("On error", error)
         setState((state) => ({
           ...state,
           error,
         }))
       },
       StateUpdate: (gamestate) =>  {
-        console.log("State Update", gamestate)
         setState((state) => ({
           ...state,
           gamestate: gamestate,

@@ -46,11 +46,13 @@ export const PlayerStaging = (props: PlayerStagingProps) => {
     document.execCommand('copy')
     selection.removeAllRanges()
     document.body.removeChild(node);
+    setCopied(true);
   }
 
   let copiedNotification;
   if (copied) {
-    copiedNotification = <div className="error">Copied URL</div>;
+    const hide = () => (setCopied(false))
+    copiedNotification = <div className="error-container"><div className="error" onAnimationEnd={hide}>Copied URL</div></div>;
   }
 
   return (
@@ -60,8 +62,10 @@ export const PlayerStaging = (props: PlayerStagingProps) => {
         <div className="dialog">
           <div className="player-title">PLAYERS:</div>
           {playerList}
-          <div className="start button" onClick={props.onStartGame}>Start Game</div>
-          <div className="copy button" onClick={copyURL}>Copy URL</div>
+          <div className="staging-buttons">
+            <div className="start button" onClick={props.onStartGame}>Start Game</div>
+            <div className="copy button" onClick={copyURL}>Copy URL</div>
+          </div>
         </div>
       </div>
     </>

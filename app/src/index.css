@@ -21,6 +21,20 @@ body {
   font-family: "Inconsolata", monospace;
 }
 
+input[type="submit"] {
+  background: #111;
+  color: #fff;
+  font-family: "Inconsolata", monospace;
+  text-transform: uppercase;
+}
+
+input[type="button"] {
+  background: #111;
+  color: #fff;
+  font-family: "Inconsolata", monospace;
+  text-transform: uppercase;
+}
+
 html, body, .container {
   height: 100%;
 }

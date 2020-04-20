@@ -12,15 +12,12 @@ import (
 )
 
 type gameConfig struct {
-	StockNames []string
-	Players    int
-	TurnCount  int
+	StockNames []string `json:"stonks"`
+	TurnCount  int      `json:"turns"`
 }
 
 type createGamePayload struct {
-	Password  string
-	OwnerID   string
-	OwnerName string
+	Config gameConfig `json:"config"`
 }
 
 // GameRegistry is just a map of game servers and handles routing to them from central web handlers
@@ -43,21 +40,33 @@ type createGameResponse struct {
 func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
 	id := xid.New()
 
+	var payload createGamePayload
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Could not parse request payload: %s", err.Error())
+		return
+	}
+
+	if payload.Config.StockNames == nil || len(payload.Config.StockNames) != 6 {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Invalid stock configuration")
+		return
+	}
+
+	turnCount := 10
+	if payload.Config.TurnCount > 0 {
+		turnCount = payload.Config.TurnCount
+	}
+
 	gr.Games[id.String()] = &GameServer{
-		GameID: id,
-		GameState: stonks.NewGame(10, 4, []string{
-			"Eggs",
-			"Resin",
-			"Chat",
-			"Canola",
-			"RURURU",
-			"Gold Chains",
-		}),
+		GameID:        id,
+		GameState:     stonks.NewGame(turnCount, 4, payload.Config.StockNames),
 		Players:       make(map[string]xid.ID),
 		PlayerStreams: make(map[string]chan interface{}),
 	}
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(&createGameResponse{
+	err = json.NewEncoder(w).Encode(&createGameResponse{
 		GameID: id.String(),
 	})
 	if err != nil {
@@ -68,7 +77,6 @@ func (gr *GameRegistry) CreateGame(w http.ResponseWriter, r *http.Request) {
 // JoinGame is the central entrypoint.  A gameid is specified in the path and we route the request to the sub
 // game server to handle.
 func (gr *GameRegistry) JoinGame(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", "*")
 	vars := mux.Vars(r)
 
 	gameID, ok := vars["gameID"]
