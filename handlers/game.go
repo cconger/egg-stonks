@@ -146,7 +146,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 
 		for {
 			var msg socketCommand
-			err = c.ReadJSON(&msg)
+			err := c.ReadJSON(&msg)
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err) {
 					// Websocket closed
