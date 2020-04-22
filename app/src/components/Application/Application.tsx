@@ -9,10 +9,11 @@ interface ApplicationState {
   clientID: string;
   playerName?: string;
   gameID?: string;
+  errorString: string | null;
 }
 
 export const Application = () => {
-  const [{clientID, playerName, gameID}, setState] = React.useState<ApplicationState>(() => {
+  const [{clientID, playerName, gameID, errorString}, setState] = React.useState<ApplicationState>(() => {
 
     // Parse query params for gameID
     let clientID = localStorage.getItem('client_id');
@@ -41,6 +42,7 @@ export const Application = () => {
       gameID,
       clientID,
       playerName,
+      errorString: null,
     }
   })
 
@@ -52,8 +54,16 @@ export const Application = () => {
     }))
   }
 
+  const navToGame = (gameID: string) => {
+    sessionStorage.setItem("game_id", gameID)
+    setState((state) => ({
+      ...state,
+      gameID: gameID,
+    }))
+  }
+
   if (!gameID) {
-    return <Landing />
+    return <Landing onSubmit={navToGame} error={errorString} />
   }
 
   if (playerName === undefined) {
@@ -62,5 +72,17 @@ export const Application = () => {
     return <NamePicker prefill={prefill} onSubmit={namePicked} />
   }
 
-  return <GameClient clientID={clientID} gameID={gameID} name={playerName} />
+  const reset = (msg: string|null) => {
+    console.log("RESET", msg);
+
+    sessionStorage.removeItem("game_id");
+
+    setState((state) => ({
+      ...state,
+      gameID: undefined,
+      errorString: msg,
+    }))
+  }
+
+  return <GameClient clientID={clientID} gameID={gameID} name={playerName} reset={reset} />
 }

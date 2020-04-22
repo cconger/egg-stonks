@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import {ErrorPane} from 'stonks/components/ErrorPane';
+
 import './style.css';
 
 // Default stonks from the NLSS
@@ -12,6 +14,11 @@ const defaultStonks = [
   "Gold Chains"
 ];
 
+export interface LandingProps {
+  error?: string;
+  onSubmit: (gameID: string) => void;
+}
+
 interface CreateGamePayload {
   config: {
     stonks: string[];
@@ -19,8 +26,8 @@ interface CreateGamePayload {
   }
 }
 
-export const Landing = () => {
-  const [err, setErr] = React.useState<string>(null);
+export const Landing = (props: LandingProps) => {
+  const [err, setErr] = React.useState<string>(props.error || null)
   const [expanded, setExpanded] = React.useState(false);
   const [stonks, setStonks] = React.useState(defaultStonks.slice())
 
@@ -63,9 +70,7 @@ export const Landing = () => {
 
       const body = await response.json();
       const gameID = body["game_id"];
-      const target = new URL(document.URL);
-      target.searchParams.set("game", gameID);
-      window.location.replace(target.toString());
+      props.onSubmit(gameID)
     } catch (e) {
       console.error("Error handling response", e)
       setErr("Unable to create game please try again later")
@@ -102,11 +107,14 @@ export const Landing = () => {
     );
   });
 
-  const clear = () => (setErr(null));
-
   let errMsg
   if (err) {
-    errMsg = <div className="error-container"><div className="error" onAnimationEnd={clear}>{err}</div></div>
+    const errorObj = {
+      ID: "-",
+      Message: err,
+      Persist: true,
+    }
+    errMsg = <ErrorPane error={errorObj} />
   }
 
   const toggleExpand = () => {

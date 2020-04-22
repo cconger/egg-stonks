@@ -8,12 +8,14 @@ export interface EventHandlers {
   PlayerUpdate?: (playerID: string) => void;
   OnClose?: () => void;
   OnError?: (error: ErrorMsg) => void;
+  NoConnect?: () => void;
 }
 type SocketEnvelope = StateUpdate | WhoamiUpdate | ErrorUpdate | UnknownUpdate;
 
 export interface ErrorMsg {
   ID: string;
   Message: string;
+  Persist?: boolean;
 }
 
 interface UnknownUpdate {
@@ -45,18 +47,21 @@ export class SocketClient {
   gameID: string
   clientID: string
   delegate: EventHandlers
+  connected: boolean
+  closing: boolean
 
 
   constructor(id: string, clientID: string, handler: EventHandlers) {
     this.delegate = handler;
     this.clientID = clientID;
+    this.connected = false;
+    this.closing = false;
 
     let a = new URL(document.URL);
     a.protocol = "ws";
     a.pathname = `/game/${id}/join`;
 
     this.socket = new WebSocket(a.toString());
-    // Right now redirect all websocket failures to landing
     this.socket.addEventListener('open', (event) => { this.onOpen(event); })
     this.socket.addEventListener('error', (event) => { this.onError(event); })
     this.socket.addEventListener('message', (event) => { this.onMessage(event); })
@@ -65,6 +70,7 @@ export class SocketClient {
 
   onOpen(event: Event) {
     console.log("Socket onopen", event)
+    this.connected = true;
     this.delegate.OnConnect();
   }
 
@@ -91,16 +97,26 @@ export class SocketClient {
   }
 
   onError(event: Event) {
+    if (this.closing) { return }
     console.log("Socket error", event);
     this.delegate.OnError({
-      ID: "404",
+      ID: nanoid(),
       Message: "Socket error, refresh?",
     })
   }
 
   onClose(event: CloseEvent) {
+    if (this.closing) { return }
     console.log("Socket closed", event);
-    this.delegate.OnClose()
+    if (this.connected) {
+      this.delegate.OnError({
+        ID: nanoid(),
+        Message: "Connection to server lost... refresh to continue",
+        Persist: true,
+      })
+      return
+    }
+    this.delegate.NoConnect();
   }
 
   Send(action: string, payload: any) {
@@ -113,6 +129,7 @@ export class SocketClient {
 
   Close() {
     console.log("Closing socket")
+    this.closing = true;
     this.socket.close();
   }
 

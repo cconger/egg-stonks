@@ -183,6 +183,7 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 			err = c.WriteJSON(update)
 			if err != nil {
 				logger.Error().Err(err).Msg("Error sending state update closing conn")
+				return
 			}
 		case err := <-errChan:
 			logger.Error().Err(err).Msg("Closing websocket processor")

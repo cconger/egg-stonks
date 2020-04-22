@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import {GameBoard} from './GameBoard';
+import {ErrorPane} from 'stonks/components/ErrorPane';
 import {PlayerStaging} from 'stonks/components/PlayerStaging';
 import {GameState, Phase} from 'stonks/game/state';
 import {SocketClient, ErrorMsg} from 'stonks/game/client';
@@ -9,6 +10,7 @@ export interface GameClientProps {
   clientID: string;
   gameID: string;
   name: string;
+  reset: (msg: string) => void;
 }
 
 interface GameClientState {
@@ -36,13 +38,9 @@ export const GameClient = (props: GameClientProps) => {
         }))
       },
       OnClose: () => {
-        if (!connected) {
-          // Reset, we never connected.
-          sessionStorage.removeItem('game_id')
-          window.location.replace(document.URL)
-        }
         setState((state) => ({
           ...state,
+          connected: false,
         }));
       },
       OnError: (error: ErrorMsg) => {
@@ -63,6 +61,9 @@ export const GameClient = (props: GameClientProps) => {
           playerID: playerID,
         }))
       },
+      NoConnect: () => {
+        props.reset("Could not join game... Please create a new game.")
+      }
     })
 
     setState((state) => ({
@@ -113,11 +114,11 @@ export const GameClient = (props: GameClientProps) => {
     let startGame = () => { client.StartGame() };
     return (
       <>
-        {errorContent}
+        <ErrorPane error={error} />
         <PlayerStaging gameID={props.gameID} state={gamestate} currentPlayer={playerID} onStartGame={startGame} />
       </>
     )
   }
 
-  return <GameBoard state={gamestate} error={error} currentPlayer={playerID} client={client} />;
+  return <GameBoard state={gamestate} error={error} currentPlayer={playerID} client={client} quit={props.reset} />;
 };

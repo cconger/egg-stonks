@@ -10,11 +10,6 @@ export interface ErrorPaneProps {
 
 type ErrorPaneState = ErrorMsg[]
 
-export interface Error {
-  ID: string;
-  Message: string;
-}
-
 export const ErrorPane = (props: ErrorPaneProps) => {
   const [errorList, setErrorList] = React.useState<ErrorPaneState>([])
 
@@ -29,14 +24,21 @@ export const ErrorPane = (props: ErrorPaneProps) => {
     errors = null
   }
 
-  let error = errorList[0];
   const handle = () => {
-    setErrorList(errorList.slice(1));
+    for (let i = 0; i < errorList.length; i++) {
+      if (!errorList[i].Persist) {
+        setErrorList([...errorList.slice(0,i), ...errorList.slice(i+1)])
+      }
+    }
   }
 
   errors = errorList.map((error) => {
+    const classNames = ["error"]
+    if (error.Persist) {
+      classNames.push("persist")
+    }
     return (
-      <div className="error" key={error.ID} onAnimationEnd={handle}>{error.Message}</div>
+      <div className={classNames.join(' ')} key={error.ID} onAnimationEnd={handle}>{error.Message}</div>
     );
   })
 

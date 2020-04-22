@@ -16,6 +16,7 @@ export interface GameBoardProps {
   currentPlayer?: string;
   error?: ErrorMsg;
   client?: GameClient;
+  quit?: (msg: string|null) => void;
 }
 
 interface GameClient {
@@ -50,7 +51,12 @@ export const GameBoard = (props: GameBoardProps) => {
     controls = <Controls player={actingPlayer} myPlayer={myPlayer} stonks={props.state.stonks} roll={props.state.roll} client={props.client} />
   }
   if (props.state.turn.number >= props.state.turns) {
-    controls = <div>Game over!</div>
+    controls = (
+      <>
+        <div>Game over!</div>
+        <div className="button" onClick={() => {props.quit(null)}}>New Game</div>
+      </>
+    )
   }
 
   return (
