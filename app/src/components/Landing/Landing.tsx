@@ -14,6 +14,8 @@ const defaultStonks = [
   "Gold Chains"
 ];
 
+const defaultTurns = 10;
+
 export interface LandingProps {
   error?: string;
   onSubmit: (gameID: string) => void;
@@ -30,6 +32,7 @@ export const Landing = (props: LandingProps) => {
   const [err, setErr] = React.useState<string>(props.error || null)
   const [expanded, setExpanded] = React.useState(false);
   const [stonks, setStonks] = React.useState(defaultStonks.slice())
+  const [turns, setTurns] = React.useState(defaultTurns)
 
   let url = new URL(document.URL)
   url.pathname = "/games/create";
@@ -49,7 +52,7 @@ export const Landing = (props: LandingProps) => {
       const payload = {
         config: {
           stonks,
-          turns: 10,
+          turns: turns,
         }
       }
 
@@ -85,7 +88,7 @@ export const Landing = (props: LandingProps) => {
     });
   };
 
-  let customization = stonks.map((s, i) => {
+  let customizeCommodities = stonks.map((s, i) => {
     const updateStonk = (e: React.FormEvent<HTMLInputElement>) => {
       let value = (e.target as HTMLInputElement).value;
       setStonks((stonks) => {
@@ -106,6 +109,34 @@ export const Landing = (props: LandingProps) => {
       />
     );
   });
+
+  let customization
+  if (expanded) {
+    const updateTurns = (v: string) => {
+      let t = parseInt(v);
+      if (t) {
+        setTurns(t);
+      } else {
+        setTurns(defaultTurns);
+      }
+    }
+    customization = (
+      <>
+        {customizeCommodities}
+        <div className="turns-selector">
+          <div>Turns: {turns}</div>
+          <input
+            type="range"
+            min="1"
+            max="30"
+            step="1"
+            value={turns}
+            onChange={(e) => {updateTurns(e.target.value);}}
+          />
+        </div>
+      </>
+    );
+  }
 
   let errMsg
   if (err) {
@@ -128,9 +159,9 @@ export const Landing = (props: LandingProps) => {
         <div className="dialog">
           <div className="stonks-title">Egg Stonks!</div>
           <form onSubmit={newGame}>
-            <div className="customize clickable" onClick={toggleExpand}>Customize Commodities<span className="chevron"></span></div>
+            <div className="customize clickable" onClick={toggleExpand}>Customize Game<span className="chevron"></span></div>
             <div className="customize-container">
-              {expanded ? customization : null}
+              {customization}
             </div>
             <input className="button new-game" type="submit" value="New Game" />
           </form>
