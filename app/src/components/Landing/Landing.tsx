@@ -158,6 +158,7 @@ export const Landing = (props: LandingProps) => {
       <div className="dialog-container">
         <div className="dialog">
           <div className="stonks-title">Egg Stonks!</div>
+          <div className="promo">Follow <a href="https://twitter.com/EggStonks">@EggStonks</a> on Twitter for patch notes and support</div>
           <form onSubmit={newGame}>
             <div className="customize clickable" onClick={toggleExpand}>Customize Game<span className="chevron"></span></div>
             <div className="customize-container">

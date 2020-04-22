@@ -15,6 +15,16 @@ html body {
   padding: 0;
 }
 
+a {
+  color: #fff;
+  font-weight: bold;
+}
+
+a:visited {
+  color: #eee;
+  font-weight: bold;
+}
+
 body {
   background: #111;
   color: #fff;
