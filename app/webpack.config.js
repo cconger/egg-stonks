@@ -55,6 +55,11 @@ module.exports = {
     },
   },
 
+  output: {
+    chunkFilename: "[name].[chunkhash].js",
+    filename: "[name].[chunkhash].js",
+  },
+
   devServer: {
     contentBase: path.join(__dirname, 'dist'),
     compress: true,
