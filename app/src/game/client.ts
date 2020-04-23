@@ -58,10 +58,10 @@ export class SocketClient {
     this.closing = false;
 
     let a = new URL(document.URL);
-    if (a.protocol == "https") {
-      a.protocol = "wss";
+    if (a.protocol == "https:") {
+      a.protocol = "wss:";
     } else {
-      a.protocol = "ws";
+      a.protocol = "ws:";
     }
     a.pathname = `/game/${id}/join`;
 
