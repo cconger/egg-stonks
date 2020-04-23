@@ -58,7 +58,11 @@ export class SocketClient {
     this.closing = false;
 
     let a = new URL(document.URL);
-    a.protocol = "ws";
+    if (a.protocol == "https") {
+      a.protocol = "wss";
+    } else {
+      a.protocol = "ws";
+    }
     a.pathname = `/game/${id}/join`;
 
     this.socket = new WebSocket(a.toString());
