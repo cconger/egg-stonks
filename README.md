@@ -49,3 +49,6 @@ Note: The `DEBUG` environment variable increases logging output and uses a prett
   * Flash green or red when Player holding increases or decreases in value
   * Flash player holding when they buy or sell.
 * Collapse multiple purchase logs of a single commodity into a single line to avoid spamming during buy phase
+* Reduce json parse load by not sending full snapshots on all user actions.
+* Have rolls apply automatically after the full roll mask is revealed.
+* Add [annotations](https://apexcharts.com/docs/annotations/) to the graphs when splits and unlistings happen.
