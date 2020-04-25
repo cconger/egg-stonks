@@ -11,23 +11,24 @@
 
 .player .name {
   text-transform: uppercase;
-  font-size: 2em;
+  font-size: 3.6em;
 }
 
 .player .worth {
   font-weight: bold;
-  font-size: 1.3em;
+  font-size: 2em;
 }
 
 .player .holdings {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   align-items: first baseline;
+  font-size: 1.6rem;
 }
 
 .player .holdings .header {
   font-weight: bold;
-  font-size: 0.8em;
+  font-size: 1.2rem;
   text-transform: uppercase;
 }
 
@@ -37,12 +38,12 @@
 
 .player .holdings .quantity {
   text-align: right;
-  font-size: 0.8em;
+  font-size: 1.2rem;
 }
 
 .player .holdings .avg-price {
   text-align: right;
-  font-size: 0.8em;
+  font-size: 1.2rem;
 }
 
 .player .holdings .mkt-value {

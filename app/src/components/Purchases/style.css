@@ -1,13 +1,13 @@
 .purchase-control {
   padding: 1em;
-  display: flex;
-  justify-content: space-between;
-  align-content: space-between;
-  flex-wrap: wrap;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-column-gap: 1rem;
+  grid-row-gap: 1rem;
 }
 
 .stonk-transaction {
-  width: 30%;
   display: flex;
   align-items: center;
 }
@@ -18,7 +18,7 @@
   text-transform: uppercase;
 }
 
-.stonk-transaction .controls {
+.stonk-transaction .transaction-controls {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -28,23 +28,23 @@
 .stock-trasnaction .price {
 }
 
-.stonk-transaction .controls .buy {
+.stonk-transaction .transaction-controls .buy {
   background: rgba(0, 255, 0, 0.5);
 }
 
-.stonk-transaction .controls .buy:hover {
+.stonk-transaction .transaction-controls .buy:hover {
   background: rgba(0, 255, 0, 0.7);
 }
 
-.stonk-transaction .controls .sell {
+.stonk-transaction .transaction-controls .sell {
   background: rgba(255,0,0,0.5);
 }
 
-.stonk-transaction .controls .sell:hover {
+.stonk-transaction .transaction-controls .sell:hover {
   background: rgba(255,0,0,0.7);
 }
 
-.stonk-transaction .controls .control {
+.stonk-transaction .transaction-controls .control {
   border: solid thin white;
   cursor: pointer;
   white-space: nowrap;
@@ -62,7 +62,7 @@
   border: solid thin white;
   text-align: center;
   font-weight: bold;
-  font-size: 1rem;
+  font-size: 1.6rem;
   padding: 0.3em;
   margin: 0 1rem;
 }

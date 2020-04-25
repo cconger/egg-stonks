@@ -49,6 +49,7 @@ func main() {
 
 	r.HandleFunc("/games/create", registry.CreateGame).Methods("POST")
 	r.HandleFunc("/game/{gameID}/join", registry.JoinGame)
+	r.HandleFunc("/game/{gameID}/state", handlers.SimulateGame)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(webroot)))
 
 	log.Printf("Reading webroot from %s", webroot)

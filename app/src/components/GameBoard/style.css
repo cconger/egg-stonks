@@ -1,36 +1,67 @@
 .screen {
-  display: grid;
-  grid-template-rows: 22% 58% 20%;
-  height: 100vh;
-  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .screen .stonks {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: 50% 50%;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   grid-row-gap: 0em;
   grid-column-gap: 2em;
+  margin-bottom: -1rem;
+}
+
+.screen .stonks .stonk {
+  margin-bottom: -3rem;
+}
+
+@media screen and (min-width: 1080px) {
+  .screen .stonks {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  .input {
+    flex-wrap: wrap-reverse;
+  }
+
+  .input {
+    height: fit-content !important;
+  }
+
+  .input .log {
+    height: 500px;
+    max-width: 800px !important;
+  }
 }
 
 .screen .players {
   display: grid;
-  grid-template-rows: 1fr;
-  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   grid-gap: 3em;
   align-content: start;
   padding: 1em;
+  min-height: 174px;
 }
 
 .input {
   z-index: 2;
-  display: grid;
-  grid-template-columns: 40% 60%;
-  grid-template-rows: 100%;
+  height: 15rem;
+  flex-grow: 1;
+  display: flex;
+}
+
+.input .log {
+  min-width: 350px;
+  max-width: 500px;
+  flex-grow: 1;
 }
 
 .input .controls {
+  flex-grow: 3;
+  min-width: 375px;
   justify-self: center;
-  align-self: center;
 }
 

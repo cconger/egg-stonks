@@ -1,5 +1,13 @@
 .wheels {
   display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.wheels-label {
+  text-align: center;
+  font-size: 2rem;
+  margin-top: 2rem;
 }
 
 .button {

@@ -97,7 +97,7 @@ export const StonkBoard = (props: StonkProps) => {
         options={options}
         type="candlestick"
         series={series}
-        height="100%"
+        height="300"
       />
     </div>
   )

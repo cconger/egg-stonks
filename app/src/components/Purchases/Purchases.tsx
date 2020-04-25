@@ -39,7 +39,7 @@ export const Purchases = (props: PurchasesProps) => {
       <div className="stonk-transaction {hodling ? 'hodl' : ''}" key={stonk.id}>
         <div className="name">{stonk.name}</div>
         <div className="quantity">{quantity}</div>
-        <div className="controls">
+        <div className="transaction-controls">
           <div onClick={buy} className="control buy">Buy 500</div>
           <div onClick={sell} className="control sell">Sell 500</div>
         </div>

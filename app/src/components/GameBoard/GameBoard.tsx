@@ -38,10 +38,6 @@ export const GameBoard = (props: GameBoardProps) => {
 
   let [myPlayer] = props.state.players.filter((player) => (player.id == props.currentPlayer));
 
-  let playerStyles = {
-    gridTemplateColumns: "repeat(" + props.state.players.length + ", 1fr)",
-  };
-
   let controls
   if (props.state.turn.phase == 1) {
     controls = <Purchases player={myPlayer} stonks={props.state.stonks} client={props.client} />
@@ -61,7 +57,7 @@ export const GameBoard = (props: GameBoardProps) => {
 
   return (
     <div className="screen">
-      <div className="players" style={playerStyles}>
+      <div className="players">
         {players}
       </div>
       <div className="stonks">

@@ -72,7 +72,7 @@ export const Controls = (props: ControlProps) => {
 
   return (
     <div>
-      <div>{props.player.name} rolling...</div>
+      <div className="wheels-label">{props.player.name} rolling...</div>
       <div className="wheels">
         <Wheel enabled={myTurn} reveal={props.roll.reveal[0]} rollID={id} choices={choices[0]} roll={rolls[0]} rollHandler={() => roll(0)} />
         <Wheel enabled={myTurn} reveal={props.roll.reveal[1]} rollID={id} choices={choices[1]} roll={rolls[1]} rollHandler={() => roll(1)} />
