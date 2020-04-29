@@ -34,6 +34,7 @@ type GameServer struct {
 	PendingRoll *PendingRoll
 	// Map of clientID to playerID
 	Players       map[string]xid.ID
+	streamLock    sync.RWMutex
 	PlayerStreams map[string]chan interface{}
 }
 
@@ -132,13 +133,17 @@ func (gs *GameServer) JoinGame(w http.ResponseWriter, r *http.Request) {
 
 	// Create a channel for gamestate updates.
 	updateChan := make(chan interface{})
+	gs.streamLock.Lock()
 	gs.PlayerStreams[login.ClientID] = updateChan
+	gs.streamLock.Unlock()
 	errChan := make(chan error)
 
 	defer func() {
+		gs.streamLock.Lock()
+		delete(gs.PlayerStreams, login.ClientID)
+		gs.streamLock.Unlock()
 		close(updateChan)
 		close(errChan)
-		delete(gs.PlayerStreams, login.ClientID)
 	}()
 
 	go func() {
@@ -272,7 +277,9 @@ func (gs *GameServer) PublishState() {
 		Payload: gs.GameState,
 	}
 	gs.StateMutex.RUnlock()
+	gs.streamLock.RLock()
 	for _, c := range gs.PlayerStreams {
 		c <- update
 	}
+	gs.streamLock.RUnlock()
 }
